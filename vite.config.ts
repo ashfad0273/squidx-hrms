@@ -5,6 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: "/squidx-hrms/", // 👈 IMPORTANT: matches your GitHub repo name
   server: {
     host: "::",
     port: 8080,
