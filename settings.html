@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SquidX HRM - System Settings">
+    <title>Settings | SquidX HRM</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            200: '#C7D2FE',
+                            300: '#A5B4FC',
+                            400: '#818CF8',
+                            500: '#6366F1',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Toggle switch styling */
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background-color: #d1d5db;
+            border-radius: 9999px;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 9999px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .peer:checked + .toggle-switch {
+            background-color: #4F46E5;
+        }
+        
+        .peer:checked + .toggle-switch::after {
+            transform: translateX(20px);
+        }
+        
+        .peer:focus + .toggle-switch {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Form input focus state */
+        .form-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        /* Error state */
+        .form-input.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+        
+        /* Card hover effect */
+        .settings-card {
+            transition: box-shadow 0.2s ease;
+        }
+        
+        .settings-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="bg-white border-b border-gray-200 fixed w-full top-0 z-30">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center">
+                    <button id="sidebarToggle" class="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 lg:hidden">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <a href="index.html" class="flex items-center ml-2 lg:ml-0">
+                        <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">S</span>
+                        </div>
+                        <span class="ml-2 text-xl font-semibold text-gray-900">SquidX <span class="text-primary-600">HRM</span></span>
+                    </a>
+                </div>
+                
+                <!-- Right Side -->
+                <div class="flex items-center gap-4">
+                    <!-- Refresh Button -->
+                    <button id="btnRefresh" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Refresh">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Current Date -->
+                    <div class="hidden sm:flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="navCurrentDate"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside id="sidebar" class="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+        <nav class="p-4 space-y-1">
+            <!-- Dashboard -->
+            <a href="index.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            
+            <!-- Members -->
+            <a href="members.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>Members</span>
+            </a>
+            
+            <!-- Attendance -->
+            <a href="attendance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span>Attendance</span>
+            </a>
+            
+            <!-- Performance -->
+            <a href="performance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>Performance</span>
+            </a>
+            
+            <!-- Ratings -->
+            <a href="ratings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                </svg>
+                <span>Ratings</span>
+            </a>
+            
+            <!-- Divider -->
+            <div class="border-t border-gray-200 my-4"></div>
+            
+            <!-- Settings (Active) -->
+            <a href="settings.html" class="flex items-center px-4 py-3 bg-primary-50 text-primary-700 rounded-lg font-medium">
+                <svg class="w-5 h-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+        
+        <!-- Sidebar Footer -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
+            <div class="flex items-center text-sm text-gray-500">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>SquidX HRM v2.0</span>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-10 hidden lg:hidden"></div>
+    
+    <!-- ============================================ -->
+    <!-- MAIN CONTENT -->
+    <!-- ============================================ -->
+    <main class="lg:ml-64 pt-16 min-h-screen">
+        <div class="p-4 sm:p-6 lg:p-8">
+            
+            <!-- ============================================ -->
+            <!-- LOADING OVERLAY -->
+            <!-- ============================================ -->
+            <div id="settingsLoadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-40 flex items-center justify-center hidden">
+                <div class="text-center">
+                    <div class="spinner mx-auto mb-4"></div>
+                    <p class="text-gray-600 font-medium">Loading settings...</p>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- PAGE HEADER -->
+            <!-- ============================================ -->
+            <div class="mb-8">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <h1 class="text-2xl font-semibold text-gray-900">Settings</h1>
+                            <p class="text-gray-500 mt-1">Manage system preferences and configuration</p>
+                        </div>
+                        <!-- Unsaved Changes Badge -->
+                        <span id="unsavedBadge" class="hidden text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1 rounded-full animate-pulse">
+                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            Unsaved Changes
+                        </span>
+                    </div>
+                    
+                    <!-- Keyboard Shortcut Hint -->
+                    <div class="hidden sm:flex items-center text-xs text-gray-400">
+                        <kbd class="px-2 py-1 bg-gray-100 rounded border border-gray-200 font-mono">Ctrl</kbd>
+                        <span class="mx-1">+</span>
+                        <kbd class="px-2 py-1 bg-gray-100 rounded border border-gray-200 font-mono">S</kbd>
+                        <span class="ml-2">to save</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- SETTINGS FORM -->
+            <!-- ============================================ -->
+            <form id="settingsForm" class="space-y-6" autocomplete="off">
+                <div id="settingsContainer">
+                    
+                    <!-- ============================================ -->
+                    <!-- CARD 1: COMPANY INFORMATION -->
+                    <!-- ============================================ -->
+                    <div class="settings-card bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                        <!-- Card Header -->
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Company Details</h3>
+                                <p class="text-sm text-gray-500">Basic information about your organization</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Body -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Company Name -->
+                            <div class="form-group">
+                                <label for="companyName" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Company Name
+                                </label>
+                                <input type="text" 
+                                       id="companyName" 
+                                       class="form-input w-full border border-gray-300 rounded-lg text-sm px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                       placeholder="Enter company name">
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_companyName">Company name is required</p>
+                            </div>
+                            
+                            <!-- Company Logo URL -->
+                            <div class="form-group">
+                                <label for="companyLogo" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Company Logo URL
+                                </label>
+                                <input type="url" 
+                                       id="companyLogo" 
+                                       class="form-input w-full border border-gray-300 rounded-lg text-sm px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                       placeholder="https://example.com/logo.png">
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_companyLogo">Please enter a valid URL</p>
+                            </div>
+                            
+                            <!-- Logo Preview -->
+                            <div class="form-group md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Logo Preview
+                                </label>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-20 h-20 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                                        <img id="logoPreview" 
+                                             class="w-full h-full object-contain hidden" 
+                                             src="" 
+                                             alt="Company Logo Preview"
+                                             onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        Enter a valid image URL above to see the preview.<br>
+                                        Recommended size: 256x256 pixels
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ============================================ -->
+                    <!-- CARD 2: WORKING HOURS SETTINGS -->
+                    <!-- ============================================ -->
+                    <div class="settings-card bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                        <!-- Card Header -->
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Working Hours</h3>
+                                <p class="text-sm text-gray-500">Configure work schedule and time settings</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Body -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Start Time -->
+                            <div class="form-group">
+                                <label for="startTime" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Work Start Time
+                                    <span class="text-gray-400 font-normal">(24-hour format)</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <input type="time" 
+                                           id="startTime" 
+                                           class="form-input w-full border border-gray-300 rounded-lg text-sm pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                           value="09:00">
+                                </div>
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_startTime">Start time must be in HH:MM format (e.g., 09:00)</p>
+                                <p class="text-xs text-gray-500 mt-1">The official start of the work day</p>
+                            </div>
+                            
+                            <!-- Late Grace Period -->
+                            <div class="form-group">
+                                <label for="lateGracePeriod" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Late Grace Period
+                                    <span class="text-gray-400 font-normal">(minutes)</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <input type="number" 
+                                           id="lateGracePeriod" 
+                                           class="form-input w-full border border-gray-300 rounded-lg text-sm pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                           min="0" 
+                                           max="120"
+                                           value="10"
+                                           placeholder="10">
+                                </div>
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_lateGracePeriod">Grace period must be between 0 and 120 minutes</p>
+                                <p class="text-xs text-gray-500 mt-1">Minutes after start time before marking as late</p>
+                            </div>
+                            
+                            <!-- Working Hours Per Day -->
+                            <div class="form-group">
+                                <label for="workingHoursPerDay" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Required Working Hours
+                                    <span class="text-gray-400 font-normal">(per day)</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <input type="number" 
+                                           id="workingHoursPerDay" 
+                                           class="form-input w-full border border-gray-300 rounded-lg text-sm pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                           min="1" 
+                                           max="24"
+                                           value="8"
+                                           placeholder="8">
+                                </div>
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_workingHoursPerDay">Working hours must be between 1 and 24</p>
+                                <p class="text-xs text-gray-500 mt-1">Minimum hours required for a full work day</p>
+                            </div>
+                            
+                            <!-- Break Duration -->
+                            <div class="form-group">
+                                <label for="breakDuration" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Break Duration
+                                    <span class="text-gray-400 font-normal">(minutes)</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                        </svg>
+                                    </div>
+                                    <input type="number" 
+                                           id="breakDuration" 
+                                           class="form-input w-full border border-gray-300 rounded-lg text-sm pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                           min="0" 
+                                           max="480"
+                                           value="60"
+                                           placeholder="60">
+                                </div>
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_breakDuration">Break duration must be between 0 and 480 minutes</p>
+                                <p class="text-xs text-gray-500 mt-1">Total break time allotted per day (lunch, etc.)</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ============================================ -->
+                    <!-- CARD 3: ATTENDANCE RULES -->
+                    <!-- ============================================ -->
+                    <div class="settings-card bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                        <!-- Card Header -->
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Attendance Rules</h3>
+                                <p class="text-sm text-gray-500">Define working days and attendance policies</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Body -->
+                        <div class="space-y-6">
+                            <!-- Working Days Text Input -->
+                            <div class="form-group">
+                                <label for="workingDays" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Working Days
+                                </label>
+                                <input type="text" 
+                                       id="workingDays" 
+                                       class="form-input w-full border border-gray-300 rounded-lg text-sm px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                       placeholder="Mon|Tue|Wed|Thu|Fri"
+                                       value="Mon|Tue|Wed|Thu|Fri">
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_workingDays">Invalid format. Use: Sun|Mon|Tue|Wed|Thu|Fri|Sat</p>
+                                <p class="text-xs text-gray-500 mt-1">Separate days with | or comma. Valid: Sun, Mon, Tue, Wed, Thu, Fri, Sat</p>
+                            </div>
+                            
+                            <!-- Working Days Checkboxes (Visual Alternative) -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-3">
+                                    Quick Select Working Days
+                                </label>
+                                <div class="flex flex-wrap gap-3">
+                                    <!-- Sunday -->
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="day-checkbox sr-only peer" data-day="Sun" value="Sun">
+                                        <div class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 
+                                                    peer-checked:bg-primary-100 peer-checked:border-primary-300 peer-checked:text-primary-700 
+                                                    hover:bg-gray-200 transition-all">
+                                            Sun
+                                        </div>
+                                    </label>
+                                    <!-- Monday -->
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="day-checkbox sr-only peer" data-day="Mon" value="Mon" checked>
+                                        <div class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 
+                                                    peer-checked:bg-primary-100 peer-checked:border-primary-300 peer-checked:text-primary-700 
+                                                    hover:bg-gray-200 transition-all">
+                                            Mon
+                                        </div>
+                                    </label>
+                                    <!-- Tuesday -->
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="day-checkbox sr-only peer" data-day="Tue" value="Tue" checked>
+                                        <div class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 
+                                                    peer-checked:bg-primary-100 peer-checked:border-primary-300 peer-checked:text-primary-700 
+                                                    hover:bg-gray-200 transition-all">
+                                            Tue
+                                        </div>
+                                    </label>
+                                    <!-- Wednesday -->
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="day-checkbox sr-only peer" data-day="Wed" value="Wed" checked>
+                                        <div class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 
+                                                    peer-checked:bg-primary-100 peer-checked:border-primary-300 peer-checked:text-primary-700 
+                                                    hover:bg-gray-200 transition-all">
+                                            Wed
+                                        </div>
+                                    </label>
+                                    <!-- Thursday -->
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="day-checkbox sr-only peer" data-day="Thu" value="Thu" checked>
+                                        <div class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 
+                                                    peer-checked:bg-primary-100 peer-checked:border-primary-300 peer-checked:text-primary-700 
+                                                    hover:bg-gray-200 transition-all">
+                                            Thu
+                                        </div>
+                                    </label>
+                                    <!-- Friday -->
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="day-checkbox sr-only peer" data-day="Fri" value="Fri" checked>
+                                        <div class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 
+                                                    peer-checked:bg-primary-100 peer-checked:border-primary-300 peer-checked:text-primary-700 
+                                                    hover:bg-gray-200 transition-all">
+                                            Fri
+                                        </div>
+                                    </label>
+                                    <!-- Saturday -->
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="day-checkbox sr-only peer" data-day="Sat" value="Sat">
+                                        <div class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 
+                                                    peer-checked:bg-primary-100 peer-checked:border-primary-300 peer-checked:text-primary-700 
+                                                    hover:bg-gray-200 transition-all">
+                                            Sat
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Toggle Switches Row -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                                <!-- Allow Half Day -->
+                                <div class="form-group">
+                                    <label class="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                                        <div class="flex-1">
+                                            <span class="block text-sm font-medium text-gray-900">Allow Half Day</span>
+                                            <span class="block text-xs text-gray-500 mt-0.5">Enable half-day attendance tracking</span>
+                                        </div>
+                                        <div class="ml-4">
+                                            <input type="checkbox" id="allowHalfDay" class="sr-only peer">
+                                            <div class="toggle-switch"></div>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <!-- Auto Calculate Status -->
+                                <div class="form-group">
+                                    <label class="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                                        <div class="flex-1">
+                                            <span class="block text-sm font-medium text-gray-900">Auto Calculate Status</span>
+                                            <span class="block text-xs text-gray-500 mt-0.5">Automatically determine late/on-time status</span>
+                                        </div>
+                                        <div class="ml-4">
+                                            <input type="checkbox" id="autoCalculateStatus" class="sr-only peer" checked>
+                                            <div class="toggle-switch"></div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ============================================ -->
+                    <!-- CARD 4: LEAVE POLICY -->
+                    <!-- ============================================ -->
+                    <div class="settings-card bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                        <!-- Card Header -->
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Leave Policy</h3>
+                                <p class="text-sm text-gray-500">Configure leave allowances and policies</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Body -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Paid Leave Per Month -->
+                            <div class="form-group">
+                                <label for="paidLeavePerMonth" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Paid Leave Per Month
+                                    <span class="text-gray-400 font-normal">(days)</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <input type="number" 
+                                           id="paidLeavePerMonth" 
+                                           class="form-input w-full border border-gray-300 rounded-lg text-sm pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                           min="0" 
+                                           max="31"
+                                           value="2"
+                                           placeholder="2">
+                                </div>
+                                <p class="text-xs text-red-600 mt-1 hidden" id="error_paidLeavePerMonth">Leave days must be between 0 and 31</p>
+                                <p class="text-xs text-gray-500 mt-1">Number of paid leave days allowed per month</p>
+                            </div>
+                            
+                            <!-- Info Card -->
+                            <div class="flex items-start p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="text-sm text-blue-700">
+                                    <p class="font-medium mb-1">Leave Calculation</p>
+                                    <p class="text-blue-600">Absences are first deducted from paid leave. Any additional absences are marked as unpaid.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ============================================ -->
+                    <!-- CARD 5: ACTIONS (SAVE & RESET) -->
+                    <!-- ============================================ -->
+                    <div class="settings-card bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <!-- Card Header -->
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Save & Reset</h3>
+                                <p class="text-sm text-gray-500">Apply your changes or reset to defaults</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Body -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+                            <!-- Left: Status -->
+                            <div class="flex items-center gap-3">
+                                <span id="saveStatus" class="text-sm text-gray-600"></span>
+                            </div>
+                            
+                            <!-- Right: Buttons -->
+                            <div class="flex flex-wrap items-center gap-3">
+                                <!-- Undo Changes Button -->
+                                <button type="button" 
+                                        id="btnCancelChanges" 
+                                        class="inline-flex items-center px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        disabled>
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                    </svg>
+                                    Undo Changes
+                                </button>
+                                
+                                <!-- Reset to Defaults Button -->
+                                <button type="button" 
+                                        id="btnResetDefaults" 
+                                        class="inline-flex items-center px-4 py-2.5 bg-white border border-amber-300 rounded-lg text-sm font-medium text-amber-700 hover:bg-amber-50 transition-all">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                    Reset to Defaults
+                                </button>
+                                
+                                <!-- Save Settings Button -->
+                                <button type="button" 
+                                        id="btnSaveSettings" 
+                                        class="inline-flex items-center px-6 py-2.5 bg-primary-600 rounded-lg text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                                        disabled>
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Save Settings
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Help Text -->
+                        <div class="mt-4 flex items-center gap-2 text-xs text-gray-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Settings are saved to your Google Sheet and will take effect immediately across all pages.</span>
+                        </div>
+                    </div>
+                    
+                </div>
+            </form>
+            
+        </div>
+    </main>
+    
+    <!-- ============================================ -->
+    <!-- TOAST CONTAINER -->
+    <!-- ============================================ -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[60] space-y-2">
+        <!-- Toast notifications will be injected here by JS -->
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================ -->
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Configuration -->
+    <script src="config/sheet-config.js"></script>
+    
+    <!-- API Module -->
+    <script src="assets/js/api.js"></script>
+    
+    <!-- Utilities -->
+    <script src="assets/js/utils.js"></script>
+    
+    <!-- Page Controller -->
+    <script src="assets/js/settings.js"></script>
+    
+    <!-- Sidebar Toggle Script -->
+    <script>
+        // Sidebar toggle for mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        });
+        
+        document.getElementById('sidebarOverlay')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            this.classList.add('hidden');
+            sidebar.classList.add('-translate-x-full');
+        });
+        
+        // Set current date in navbar
+        document.getElementById('navCurrentDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+        
+        // Refresh button
+        document.getElementById('btnRefresh')?.addEventListener('click', function() {
+            if (window.SettingsPage && typeof SettingsPage.loadSettings === 'function') {
+                SettingsPage.loadSettings().then(() => {
+                    if (window.Utils && typeof Utils.showToast === 'function') {
+                        Utils.showToast('Settings refreshed', 'info');
+                    }
+                });
+            } else {
+                location.reload();
+            }
+        });
+    </script>
+    
+</body>
+</html>
