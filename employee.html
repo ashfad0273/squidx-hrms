@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SquidX HRM - Employee Details">
+    <title>Employee Details | SquidX HRM</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            200: '#C7D2FE',
+                            300: '#A5B4FC',
+                            400: '#818CF8',
+                            500: '#6366F1',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Modal animation */
+        .modal-content {
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        .spinner-sm {
+            width: 20px;
+            height: 20px;
+            border-width: 2px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Tab underline animation */
+        .tab-button {
+            position: relative;
+        }
+        .tab-button::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: transparent;
+            transition: background-color 0.2s ease;
+        }
+        .tab-button.active::after,
+        .tab-button.border-primary-500::after {
+            background-color: #6366F1;
+        }
+        
+        /* Rating slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="bg-white border-b border-gray-200 fixed w-full top-0 z-30">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center">
+                    <button id="sidebarToggle" class="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 lg:hidden">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <a href="index.html" class="flex items-center ml-2 lg:ml-0">
+                        <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">S</span>
+                        </div>
+                        <span class="ml-2 text-xl font-semibold text-gray-900">SquidX <span class="text-primary-600">HRM</span></span>
+                    </a>
+                </div>
+                
+                <!-- Right Side -->
+                <div class="flex items-center gap-4">
+                    <!-- Back Button -->
+                    <button id="btnBackToDirectory" class="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back to Directory
+                    </button>
+                    
+                    <!-- Current Date -->
+                    <div class="hidden sm:flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="navCurrentDate"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside id="sidebar" class="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+        <nav class="p-4 space-y-1">
+            <!-- Dashboard -->
+            <a href="index.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            
+            <!-- Members (Active) -->
+            <a href="members.html" class="flex items-center px-4 py-3 bg-primary-50 text-primary-700 rounded-lg font-medium">
+                <svg class="w-5 h-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>Members</span>
+            </a>
+            
+            <!-- Attendance -->
+            <a href="attendance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span>Attendance</span>
+            </a>
+            
+            <!-- Performance -->
+            <a href="performance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>Performance</span>
+            </a>
+            
+            <!-- Ratings -->
+            <a href="ratings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                </svg>
+                <span>Ratings</span>
+            </a>
+            
+            <!-- Divider -->
+            <div class="border-t border-gray-200 my-4"></div>
+            
+            <!-- Settings -->
+            <a href="settings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </aside>
+    
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-10 hidden lg:hidden"></div>
+    
+    <!-- ============================================ -->
+    <!-- LOADING OVERLAY -->
+    <!-- ============================================ -->
+    <div id="employeeLoadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-40 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+            <div class="spinner mb-4"></div>
+            <p class="text-gray-600 font-medium">Loading employee profile...</p>
+        </div>
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- ERROR CONTAINER -->
+    <!-- ============================================ -->
+    <div id="employeeErrorContainer" class="hidden lg:ml-64 pt-16 min-h-screen">
+        <!-- Error content will be injected by JS -->
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- MAIN CONTENT -->
+    <!-- ============================================ -->
+    <main id="employeePageContainer" class="lg:ml-64 pt-16 min-h-screen">
+        <div class="p-4 sm:p-6 lg:p-8">
+            
+            <!-- ============================================ -->
+            <!-- EMPLOYEE PROFILE HEADER -->
+            <!-- ============================================ -->
+            <div id="employeeHeader" class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+                <!-- Cover/Gradient Background -->
+                <div class="h-32 bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700"></div>
+                
+                <!-- Profile Content -->
+                <div class="px-6 pb-6">
+                    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between -mt-16">
+                        <!-- Left: Photo & Basic Info -->
+                        <div class="flex flex-col sm:flex-row sm:items-end gap-4">
+                            <!-- Profile Photo -->
+                            <div class="relative">
+                                <img id="employeePhoto" 
+                                     src="https://ui-avatars.com/api/?name=Loading&background=6366f1&color=fff&size=128" 
+                                     alt="Employee Photo"
+                                     class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg object-cover bg-gray-100">
+                                <span id="employeeStatus" class="absolute -bottom-1 -right-1">
+                                    <!-- Status badge will be injected by JS -->
+                                </span>
+                            </div>
+                            
+                            <!-- Name & Basic Details -->
+                            <div class="mt-4 sm:mt-0 sm:mb-2">
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <h1 id="employeeName" class="text-2xl font-bold text-gray-900">Loading...</h1>
+                                    <span id="employeeId" class="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                                        ID: ---
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-gray-600">
+                                    <span id="employeeRole" class="font-medium">---</span>
+                                    <span class="text-gray-400">•</span>
+                                    <span id="employeeDepartment" class="text-gray-500">---</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right: Action Buttons -->
+                        <div class="flex items-center gap-3 mt-4 lg:mt-0">
+                            <button id="btnEditMember" class="inline-flex items-center px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Edit Profile
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info Row -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
+                        <!-- Email -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs text-gray-500">Email</p>
+                                <p id="employeeEmail" class="text-sm font-medium text-gray-900 truncate">---</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Phone -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs text-gray-500">Phone</p>
+                                <p id="employeePhone" class="text-sm font-medium text-gray-900 truncate">---</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Join Date -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs text-gray-500">Join Date</p>
+                                <p id="employeeJoinDate" class="text-sm font-medium text-gray-900 truncate">---</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Birthday -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-pink-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs text-gray-500">Birthday</p>
+                                <p id="employeeBirthday" class="text-sm font-medium text-gray-900 truncate">---</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- SUMMARY CARDS -->
+            <!-- ============================================ -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <!-- Total Days -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Total Days</p>
+                            <p id="summaryTotalDays" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Present Days -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Present</p>
+                            <p id="summaryPresentDays" class="text-2xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Late Days -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Late</p>
+                            <p id="summaryLateDays" class="text-2xl font-bold text-amber-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Absent Days -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Absent</p>
+                            <p id="summaryAbsentDays" class="text-2xl font-bold text-red-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Leave Days -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">On Leave</p>
+                            <p id="summaryLeaveDays" class="text-2xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Average Rating -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Avg Rating</p>
+                            <p id="summaryRatingScore" class="text-2xl font-bold text-primary-600">0.0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- TAB NAVIGATION -->
+            <!-- ============================================ -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <!-- Tab Buttons -->
+                <div class="border-b border-gray-200">
+                    <nav class="flex overflow-x-auto" aria-label="Tabs">
+                        <button data-tab="attendance" class="tab-button border-primary-500 text-primary-600 whitespace-nowrap py-4 px-6 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors hover:text-primary-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                            </svg>
+                            Attendance
+                        </button>
+                        <button data-tab="leave" class="tab-button border-transparent text-gray-500 whitespace-nowrap py-4 px-6 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors hover:text-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Leave
+                        </button>
+                        <button data-tab="performance" class="tab-button border-transparent text-gray-500 whitespace-nowrap py-4 px-6 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors hover:text-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Performance
+                        </button>
+                        <button data-tab="ratings" class="tab-button border-transparent text-gray-500 whitespace-nowrap py-4 px-6 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors hover:text-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                            </svg>
+                            Ratings
+                        </button>
+                    </nav>
+                </div>
+                
+                <!-- ============================================ -->
+                <!-- TAB CONTENT: ATTENDANCE -->
+                <!-- ============================================ -->
+                <div id="attendanceContent" class="tab-content p-6">
+                    <!-- Filters -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Attendance History</h3>
+                        <div class="flex items-center gap-3">
+                            <select id="attendanceFilterMonth" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                                <option value="all">All Months</option>
+                            </select>
+                            <select id="attendanceFilterYear" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                                <option value="all">All Years</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance List -->
+                    <div id="attendanceList" class="space-y-3">
+                        <!-- Attendance entries will be injected by JS -->
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="attendanceEmptyState" class="hidden py-12 text-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-1">No Attendance Records</h4>
+                        <p class="text-gray-500">Attendance history will appear here once recorded.</p>
+                    </div>
+                </div>
+                
+                <!-- ============================================ -->
+                <!-- TAB CONTENT: LEAVE -->
+                <!-- ============================================ -->
+                <div id="leaveContent" class="tab-content hidden p-6">
+                    <!-- Leave Summary -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-green-50 rounded-xl p-4 text-center">
+                            <p class="text-sm text-green-600 mb-1">Remaining</p>
+                            <p id="leaveRemaining" class="text-3xl font-bold text-green-700">0</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 text-center">
+                            <p class="text-sm text-amber-600 mb-1">Taken</p>
+                            <p id="leaveTaken" class="text-3xl font-bold text-amber-700">0</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-xl p-4 text-center">
+                            <p class="text-sm text-blue-600 mb-1">Total/Month</p>
+                            <p id="leaveTotal" class="text-3xl font-bold text-blue-700">2</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Leave History Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Leave History</h3>
+                    </div>
+                    
+                    <!-- Leave List -->
+                    <div id="leaveList" class="space-y-3">
+                        <!-- Leave entries will be injected by JS -->
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="leaveEmptyState" class="hidden py-12 text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-1">No Leave Records</h4>
+                        <p class="text-gray-500">Leave history will appear here.</p>
+                    </div>
+                </div>
+                
+                <!-- ============================================ -->
+                <!-- TAB CONTENT: PERFORMANCE -->
+                <!-- ============================================ -->
+                <div id="performanceContent" class="tab-content hidden p-6">
+                    <!-- Header with Add Button -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Performance Tasks</h3>
+                            <p id="taskStats" class="text-sm text-gray-500 mt-1">
+                                <!-- Task stats will be injected by JS -->
+                            </p>
+                        </div>
+                        <button id="btnAddTask" class="inline-flex items-center px-4 py-2.5 bg-primary-600 rounded-lg text-sm font-medium text-white hover:bg-primary-700 transition-colors shadow-sm">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add Task
+                        </button>
+                    </div>
+                    
+                    <!-- Task List -->
+                    <div id="taskList" class="space-y-3">
+                        <!-- Tasks will be injected by JS -->
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="taskEmptyState" class="hidden py-12 text-center">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-1">No Tasks Assigned</h4>
+                        <p class="text-gray-500 mb-4">Start tracking performance by adding tasks.</p>
+                        <button onclick="EmployeePage.openTaskModal()" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add First Task
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- ============================================ -->
+                <!-- TAB CONTENT: RATINGS -->
+                <!-- ============================================ -->
+                <div id="ratingsContent" class="tab-content hidden p-6">
+                    <!-- Header with Add Button -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Ratings Timeline</h3>
+                            <div id="averageRating" class="flex items-baseline">
+                                <!-- Average rating will be injected by JS -->
+                            </div>
+                        </div>
+                        <button id="btnAddRating" class="inline-flex items-center px-4 py-2.5 bg-primary-600 rounded-lg text-sm font-medium text-white hover:bg-primary-700 transition-colors shadow-sm">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                            </svg>
+                            Add Rating
+                        </button>
+                    </div>
+                    
+                    <!-- Rating Chart -->
+                    <div id="ratingChart" class="bg-gray-50 rounded-xl p-4 mb-6">
+                        <div class="h-64">
+                            <canvas id="ratingChartCanvas"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Rating List -->
+                    <div id="ratingList" class="space-y-3">
+                        <!-- Ratings will be injected by JS -->
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="ratingEmptyState" class="hidden py-12 text-center">
+                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-1">No Ratings Yet</h4>
+                        <p class="text-gray-500 mb-4">Start tracking performance by adding ratings.</p>
+                        <button onclick="EmployeePage.openRatingModal()" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                            </svg>
+                            Add First Rating
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+    
+    <!-- ============================================ -->
+    <!-- TASK MODAL -->
+    <!-- ============================================ -->
+    <div id="taskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 opacity-0 transition-all duration-200">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 border-b border-gray-200">
+                <h2 id="taskModalTitle" class="text-lg font-semibold text-gray-900">Add Task</h2>
+                <button id="btnCloseTaskModal" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <form id="taskForm" class="p-5 space-y-5">
+                <!-- Hidden Task ID -->
+                <input type="hidden" id="taskId">
+                
+                <!-- Task Title -->
+                <div>
+                    <label for="taskTitle" class="block text-sm font-medium text-gray-700 mb-2">
+                        Task Title <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           id="taskTitle" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Enter task title..."
+                           required>
+                </div>
+                
+                <!-- Task Description -->
+                <div>
+                    <label for="taskDescription" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description <span class="text-gray-400">(optional)</span>
+                    </label>
+                    <textarea id="taskDescription" 
+                              rows="3" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                              placeholder="Add task description..."></textarea>
+                </div>
+                
+                <!-- Deadline & Status Row -->
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Deadline -->
+                    <div>
+                        <label for="taskDeadline" class="block text-sm font-medium text-gray-700 mb-2">
+                            Deadline
+                        </label>
+                        <input type="date" 
+                               id="taskDeadline" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    
+                    <!-- Status -->
+                    <div>
+                        <label for="taskStatus" class="block text-sm font-medium text-gray-700 mb-2">
+                            Status
+                        </label>
+                        <select id="taskStatus" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Score -->
+                <div>
+                    <label for="taskScore" class="block text-sm font-medium text-gray-700 mb-2">
+                        Score <span class="text-gray-400">(0-100)</span>
+                    </label>
+                    <input type="number" 
+                           id="taskScore" 
+                           min="0" 
+                           max="100"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Enter score (optional)">
+                </div>
+                
+                <!-- Notes (alias for description in some contexts) -->
+                <input type="hidden" id="taskNotes">
+            </form>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-between p-5 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+                <button id="btnDeleteTask" class="hidden px-4 py-2.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete
+                </button>
+                <div class="flex items-center gap-3 ml-auto">
+                    <button id="btnCancelTask" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="btnSaveTask" class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+                        Add Task
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- RATING MODAL -->
+    <!-- ============================================ -->
+    <div id="ratingModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 opacity-0 transition-all duration-200">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 border-b border-gray-200">
+                <h2 id="ratingModalTitle" class="text-lg font-semibold text-gray-900">Add Rating</h2>
+                <button id="btnCloseRatingModal" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <form id="ratingForm" class="p-5 space-y-6">
+                <!-- Hidden Rating ID -->
+                <input type="hidden" id="ratingId">
+                
+                <!-- Rating Date -->
+                <div>
+                    <label for="ratingDate" class="block text-sm font-medium text-gray-700 mb-2">
+                        Rating Date
+                    </label>
+                    <input type="date" 
+                           id="ratingDate" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                
+                <!-- Quality Rating -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="ratingQuality" class="text-sm font-medium text-gray-700">Quality</label>
+                        <span id="ratingQualityValue" class="text-sm font-semibold text-primary-600">3</span>
+                    </div>
+                    <input type="range" 
+                           id="ratingQuality" 
+                           min="1" 
+                           max="5" 
+                           value="3"
+                           class="w-full">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Poor</span>
+                        <span>Excellent</span>
+                    </div>
+                </div>
+                
+                <!-- Punctuality Rating -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="ratingPunctuality" class="text-sm font-medium text-gray-700">Punctuality</label>
+                        <span id="ratingPunctualityValue" class="text-sm font-semibold text-primary-600">3</span>
+                    </div>
+                    <input type="range" 
+                           id="ratingPunctuality" 
+                           min="1" 
+                           max="5" 
+                           value="3"
+                           class="w-full">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Poor</span>
+                        <span>Excellent</span>
+                    </div>
+                </div>
+                
+                <!-- Reliability Rating -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="ratingReliability" class="text-sm font-medium text-gray-700">Reliability</label>
+                        <span id="ratingReliabilityValue" class="text-sm font-semibold text-primary-600">3</span>
+                    </div>
+                    <input type="range" 
+                           id="ratingReliability" 
+                           min="1" 
+                           max="5" 
+                           value="3"
+                           class="w-full">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Poor</span>
+                        <span>Excellent</span>
+                    </div>
+                </div>
+                
+                <!-- Deadlines Rating -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="ratingDeadlines" class="text-sm font-medium text-gray-700">Meeting Deadlines</label>
+                        <span id="ratingDeadlinesValue" class="text-sm font-semibold text-primary-600">3</span>
+                    </div>
+                    <input type="range" 
+                           id="ratingDeadlines" 
+                           min="1" 
+                           max="5" 
+                           value="3"
+                           class="w-full">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Poor</span>
+                        <span>Excellent</span>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end gap-3 p-5 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+                <button id="btnCancelRating" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button id="btnSaveRating" class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Add Rating
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- TOAST CONTAINER -->
+    <!-- ============================================ -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[9999] space-y-2">
+        <!-- Toast notifications will be injected here by JS -->
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================ -->
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Configuration -->
+    <script src="config/sheet-config.js"></script>
+    
+    <!-- API Module -->
+    <script src="assets/js/api.js"></script>
+    
+    <!-- Utilities -->
+    <script src="assets/js/utils.js"></script>
+    
+    <!-- Page Controller -->
+    <script src="assets/js/employee.js"></script>
+    
+    <!-- Sidebar Toggle Script -->
+    <script>
+        // Sidebar toggle for mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        });
+        
+        document.getElementById('sidebarOverlay')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            this.classList.add('hidden');
+            sidebar.classList.add('-translate-x-full');
+        });
+        
+        // Set current date in navbar
+        document.getElementById('navCurrentDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    </script>
+    
+</body>
+</html>

@@ -393,7 +393,7 @@ const MembersPage = (function() {
                     
                     <!-- Card Header with Photo -->
                     <a href="${memberLink}" class="block">
-                        <div class="relative h-32 bg-gradient-to-br from-primary-500 to-primary-700 overflow-hidden">
+                        <div class="relative h-32 bg-gradient-to-br from-primary-500 to-primary-700 ">
                             <!-- Background Pattern -->
                             <div class="absolute inset-0 opacity-10">
                                 <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">

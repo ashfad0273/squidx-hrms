@@ -1,1550 +1,1550 @@
 /**
- * Performance Page Logic
- * Handles task management, performance tracking, and analytics
- * for both employees and admins
+ * SquidX HRM — Performance Page Controller
+ * =========================================
+ * Handles all performance task management including:
+ * - Loading and displaying tasks
+ * - Task CRUD operations
+ * - Team-level overview with charts
+ * - Filtering and searching
+ * - Summary metrics and analytics
+ * 
+ * Dependencies:
+ *   - jQuery
+ *   - Chart.js
+ *   - /config/sheet-config.js
+ *   - /assets/js/api.js
+ *   - /assets/js/utils.js
  */
 
-(function() {
+const PerformancePage = (function() {
     'use strict';
 
     // ============================================
-    // PERFORMANCE PAGE CONTROLLER
+    // 📦 STATE VARIABLES
     // ============================================
 
-    const PerformancePage = {
-        // State
-        user: null,
-        isAdmin: false,
-        tasks: [],
-        filteredTasks: [],
-        employees: [],
-        statistics: null,
-        selectedTask: null,
+    /**
+     * All team members
+     */
+    let members = [];
 
+    /**
+     * All performance tasks
+     */
+    let tasks = [];
+
+    /**
+     * Filtered tasks based on current filters
+     */
+    let filteredTasks = [];
+
+    /**
+     * Application settings
+     */
+    let settings = {};
+
+    /**
+     * Loading state flag
+     */
+    let isLoading = false;
+
+    /**
+     * Saving state flag
+     */
+    let isSaving = false;
+
+    /**
+     * Task being edited (null for new task)
+     */
+    let editingTaskId = null;
+
+    /**
+     * Chart instances for cleanup
+     */
+    let charts = {
+        completion: null,
+        department: null,
+        monthly: null
+    };
+
+    /**
+     * Current pagination state
+     */
+    let pagination = {
+        page: 1,
+        perPage: 10,
+        totalPages: 1
+    };
+
+    // ============================================
+    // 🔧 CONFIGURATION
+    // ============================================
+
+    /**
+     * Task status configurations
+     */
+    const TASK_STATUS = {
+        'Pending': { color: 'yellow', bgClass: 'bg-yellow-100', textClass: 'text-yellow-800', label: 'Pending' },
+        'In Progress': { color: 'blue', bgClass: 'bg-blue-100', textClass: 'text-blue-800', label: 'In Progress' },
+        'Completed': { color: 'green', bgClass: 'bg-green-100', textClass: 'text-green-800', label: 'Completed' },
+        'Overdue': { color: 'red', bgClass: 'bg-red-100', textClass: 'text-red-800', label: 'Overdue' },
+        'Cancelled': { color: 'gray', bgClass: 'bg-gray-100', textClass: 'text-gray-800', label: 'Cancelled' }
+    };
+
+    /**
+     * Chart color palette
+     */
+    const CHART_COLORS = {
+        primary: '#6366F1',
+        success: '#10B981',
+        warning: '#F59E0B',
+        danger: '#EF4444',
+        info: '#3B82F6',
+        secondary: '#6B7280',
+        purple: '#8B5CF6',
+        pink: '#EC4899'
+    };
+
+    /**
+     * DOM Selectors
+     */
+    const SELECTORS = {
+        // Page containers
+        pageContainer: '#performancePageContainer',
+        loadingOverlay: '#performanceLoadingOverlay',
+        
+        // Summary Cards
+        summaryTotalTasks: '#summaryTotalTasks',
+        summaryCompleted: '#summaryCompleted',
+        summaryPending: '#summaryPending',
+        summaryOverdue: '#summaryOverdue',
+        summaryInProgress: '#summaryInProgress',
+        summaryAvgScore: '#summaryAvgScore',
+        
         // Filters
-        filters: {
-            status: '',
-            employeeId: '',
-            department: '',
-            startDate: '',
-            endDate: '',
-            search: '',
-            priority: ''
-        },
-
+        filterDepartment: '#filterDepartment',
+        filterEmployee: '#filterEmployee',
+        filterStatus: '#filterStatus',
+        searchInput: '#searchInput',
+        btnClearFilters: '#btnClearFilters',
+        
+        // Action buttons
+        btnAddTask: '#btnAddTask',
+        btnRefresh: '#btnRefresh',
+        
+        // Table
+        taskTableContainer: '#taskTableContainer',
+        taskTable: '#taskTable',
+        taskTableBody: '#taskTableBody',
+        
         // Pagination
-        pagination: {
-            page: 1,
-            perPage: 15,
-            total: 0
-        },
+        paginationContainer: '#paginationContainer',
+        paginationInfo: '#paginationInfo',
+        btnPrevPage: '#btnPrevPage',
+        btnNextPage: '#btnNextPage',
+        
+        // Charts
+        chartCompletion: '#chartCompletion',
+        chartDepartment: '#chartDepartment',
+        chartMonthly: '#chartMonthly',
+        chartsContainer: '#chartsContainer',
+        
+        // Task Modal
+        taskModal: '#taskModal',
+        taskForm: '#taskForm',
+        taskModalTitle: '#taskModalTitle',
+        taskId: '#taskId',
+        taskEmployeeSelect: '#taskEmployeeSelect',
+        taskTitleInput: '#taskTitleInput',
+        taskDescriptionInput: '#taskDescriptionInput',
+        taskDeadlineInput: '#taskDeadlineInput',
+        taskStatusSelect: '#taskStatusSelect',
+        taskQualityInput: '#taskQualityInput',
+        taskNotesInput: '#taskNotesInput',
+        btnSaveTask: '#btnSaveTask',
+        btnCancelTask: '#btnCancelTask',
+        btnCloseTaskModal: '#btnCloseTaskModal',
+        btnDeleteTask: '#btnDeleteTask',
+        
+        // View Toggle
+        btnViewTable: '#btnViewTable',
+        btnViewCards: '#btnViewCards',
+        taskCardsContainer: '#taskCardsContainer'
+    };
 
-        // Sorting
-        sorting: {
-            column: 'DueDate',
-            direction: 'asc'
-        },
+    // ============================================
+    // 🚀 INITIALIZATION
+    // ============================================
 
-        // Chart instance
-        charts: {},
-
-        /**
-         * Initialize the page
-         */
-        init: function() {
-            console.log('📈 Initializing Performance Page...');
-
-            if (!Auth.requireAuth()) {
-                return;
-            }
-
-            this.user = Auth.getCurrentUser();
-            this.isAdmin = Auth.isAdmin();
-
-            if (!this.user) {
-                Auth.logout();
-                return;
-            }
-
-            // Set default date range
-            this.setDefaultDateRange();
-
-            // Cache elements
-            this.cacheElements();
-
-            // Bind events
-            this.bindEvents();
-
-            // Load components
-            this.loadComponents();
-
-            // Load initial data
-            this.loadInitialData();
-
-            console.log('✅ Performance Page initialized');
-        },
-
-        /**
-         * Set default date range (last 3 months)
-         */
-        setDefaultDateRange: function() {
-            const now = new Date();
-            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    /**
+     * Initialize the performance page
+     */
+    const init = async () => {
+        CONFIG.log('Initializing Performance Page...');
+        
+        try {
+            // Show loading state
+            showPageLoading();
             
-            this.filters.startDate = Utils.date.format(threeMonthsAgo, 'iso');
-            this.filters.endDate = Utils.date.format(now, 'iso');
-        },
-
-        /**
-         * Cache DOM elements
-         */
-        cacheElements: function() {
-            this.elements = {
-                // Stats cards
-                totalTasks: $('#total-tasks'),
-                completedTasks: $('#completed-tasks'),
-                pendingTasks: $('#pending-tasks'),
-                overdueTasks: $('#overdue-tasks'),
-                completionRate: $('#completion-rate'),
-                onTimeRate: $('#ontime-rate'),
-                avgScore: $('#avg-score'),
-
-                // Filters
-                statusFilter: $('#status-filter'),
-                employeeFilter: $('#employee-filter'),
-                departmentFilter: $('#department-filter'),
-                startDateInput: $('#start-date'),
-                endDateInput: $('#end-date'),
-                searchInput: $('#search-input'),
-
-                // Table
-                tableBody: $('#tasks-table-body'),
-
-                // Charts
-                performanceChartCanvas: $('#performance-chart-canvas'),
-                trendChartCanvas: $('#trend-chart-canvas'),
-
-                // Pagination
-                paginationContainer: $('#pagination-container'),
-                pageInfo: $('#page-info'),
-
-                // Modals
-                assignTaskModal: $('#assign-task-modal'),
-                viewTaskModal: $('#view-task-modal'),
-                scoreTaskModal: $('#score-task-modal'),
-
-                // Loading
-                loadingOverlay: $('#loading-overlay'),
-                tableLoading: $('#table-loading')
-            };
-        },
-
-        /**
-         * Bind event listeners
-         */
-        bindEvents: function() {
-            const self = this;
-
-            // Filter changes
-            $(document).on('change', '#status-filter', function() {
-                self.filters.status = $(this).val();
-                self.applyFilters();
-            });
-
-            $(document).on('change', '#employee-filter', function() {
-                self.filters.employeeId = $(this).val();
-                self.applyFilters();
-            });
-
-            $(document).on('change', '#department-filter', function() {
-                self.filters.department = $(this).val();
-                self.applyFilters();
-            });
-
-            // Date filter
-            $(document).on('change', '#start-date, #end-date', function() {
-                self.filters.startDate = $('#start-date').val();
-                self.filters.endDate = $('#end-date').val();
-                self.loadTasks();
-            });
-
-            // Search
-            $(document).on('input', '#search-input', Utils.debounce(function() {
-                self.filters.search = $(this).val().trim();
-                self.applyFilters();
-            }, 300));
-
-            // Quick status filters
-            $(document).on('click', '.status-quick-filter', function() {
-                const status = $(this).data('status');
-                self.filters.status = status;
-                $('#status-filter').val(status);
-                self.applyFilters();
-
-                // Update active state
-                $('.status-quick-filter').removeClass('ring-2 ring-primary-500');
-                $(this).addClass('ring-2 ring-primary-500');
-            });
-
-            // Sort headers
-            $(document).on('click', '.sortable-header', function() {
-                const column = $(this).data('column');
-                self.handleSort(column);
-            });
-
-            // Pagination
-            $(document).on('click', '.page-btn', function() {
-                if (!$(this).prop('disabled')) {
-                    const page = $(this).data('page');
-                    self.goToPage(page);
-                }
-            });
-
-            // Assign task button (admin)
-            $(document).on('click', '#assign-task-btn', function() {
-                self.showAssignTaskModal();
-            });
-
-            // Assign task form submit
-            $(document).on('submit', '#assign-task-form', function(e) {
-                e.preventDefault();
-                self.handleAssignTask();
-            });
-
-            // View task details
-            $(document).on('click', '.view-task-btn', function(e) {
-                e.stopPropagation();
-                const taskId = $(this).data('task-id');
-                self.showTaskDetails(taskId);
-            });
-
-            // Task row click
-            $(document).on('click', '.task-row', function() {
-                const taskId = $(this).data('task-id');
-                self.showTaskDetails(taskId);
-            });
-
-            // Complete task button
-            $(document).on('click', '#complete-task-btn, .complete-task-btn', function(e) {
-                e.stopPropagation();
-                const taskId = $(this).data('task-id') || self.selectedTask?.TaskID;
-                if (taskId) {
-                    self.handleCompleteTask(taskId);
-                }
-            });
-
-            // Score task button (admin)
-            $(document).on('click', '.score-task-btn', function(e) {
-                e.stopPropagation();
-                const taskId = $(this).data('task-id');
-                self.showScoreModal(taskId);
-            });
-
-            // Score form submit
-            $(document).on('submit', '#score-task-form', function(e) {
-                e.preventDefault();
-                self.handleScoreTask();
-            });
-
-            // Edit task button (admin)
-            $(document).on('click', '.edit-task-btn', function(e) {
-                e.stopPropagation();
-                const taskId = $(this).data('task-id');
-                self.showEditTaskModal(taskId);
-            });
-
-            // Delete task button (admin)
-            $(document).on('click', '.delete-task-btn', function(e) {
-                e.stopPropagation();
-                const taskId = $(this).data('task-id');
-                self.handleDeleteTask(taskId);
-            });
-
-            // Bulk actions
-            $(document).on('click', '#select-all-tasks', function() {
-                const isChecked = $(this).prop('checked');
-                $('.task-checkbox').prop('checked', isChecked);
-                self.updateBulkActionState();
-            });
-
-            $(document).on('change', '.task-checkbox', function() {
-                self.updateBulkActionState();
-            });
-
-            // Export
-            $(document).on('click', '#export-btn', function() {
-                self.exportTasks();
-            });
-
-            // Refresh
-            $(document).on('click', '#refresh-btn', function() {
-                self.refresh();
-            });
-
-            // Clear filters
-            $(document).on('click', '#clear-filters-btn', function() {
-                self.clearFilters();
-            });
-
-            // Modal close
-            $(document).on('click', '.close-modal, .modal-backdrop', function() {
-                self.hideModals();
-            });
-
-            // Escape key
-            $(document).on('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    self.hideModals();
-                }
-            });
-
-            // View toggle
-            $(document).on('click', '.view-toggle-btn', function() {
-                const view = $(this).data('view');
-                self.toggleView(view);
-            });
-        },
-
-        /**
-         * Load components
-         */
-        loadComponents: function() {
-            const self = this;
-
-            Utils.component.load('#navbar-container', 'components/navbar.html', function() {
-                self.updateNavbar();
-            });
-
-            Utils.component.load('#sidebar-container', 'components/sidebar.html', function() {
-                self.updateSidebar();
-            });
-
-            Utils.component.load('#footer-container', 'components/footer.html');
-        },
-
-        /**
-         * Update navbar
-         */
-        updateNavbar: function() {
-            $('#nav-user-name').text(this.user.name || 'User');
-            $('#nav-user-role').text(this.user.role || 'Employee');
-        },
-
-        /**
-         * Update sidebar
-         */
-        updateSidebar: function() {
-            $('.sidebar-link').removeClass('active bg-primary-50 text-primary-600');
-            $('.sidebar-link[href="performance.html"]').addClass('active bg-primary-50 text-primary-600');
+            // Step 1: Load settings
+            await loadSettings();
             
-            if (this.isAdmin) {
-                $('.admin-only').removeClass('hidden');
-            }
-        },
-
-        /**
-         * Load initial data
-         */
-        loadInitialData: function() {
-            const self = this;
-
-            this.showLoading();
-
-            const promises = [this.loadTasks()];
-
-            if (this.isAdmin) {
-                promises.push(this.loadEmployees());
-            }
-
-            Promise.all(promises)
-                .then(function() {
-                    self.setupUI();
-                    self.initCharts();
-                })
-                .catch(function(error) {
-                    console.error('Error loading data:', error);
-                    Utils.toast.error('Failed to load data');
-                })
-                .finally(function() {
-                    self.hideLoading();
-                });
-        },
-
-        /**
-         * Load tasks
-         */
-        loadTasks: function() {
-            const self = this;
-
-            this.showTableLoading();
-
-            const params = {
-                startDate: this.filters.startDate,
-                endDate: this.filters.endDate
-            };
-
-            // For employees, only load their own tasks
-            if (!this.isAdmin) {
-                params.employeeId = this.user.employeeId;
-            } else if (this.filters.employeeId) {
-                params.employeeId = this.filters.employeeId;
-            }
-
-            if (this.filters.status) {
-                params.status = this.filters.status;
-            }
-
-            if (this.filters.department) {
-                params.department = this.filters.department;
-            }
-
-            return API.performance.list(params)
-                .then(function(response) {
-                    if (response.success) {
-                        self.tasks = response.data;
-                        self.applyFilters();
-                        self.calculateStatistics();
-                    } else {
-                        Utils.toast.error('Failed to load tasks');
-                    }
-                })
-                .catch(function(error) {
-                    console.error('Tasks load error:', error);
-                    Utils.toast.error('Failed to load tasks');
-                })
-                .finally(function() {
-                    self.hideTableLoading();
-                });
-        },
-
-        /**
-         * Load employees (admin only)
-         */
-        loadEmployees: function() {
-            const self = this;
-
-            return API.employees.list({ status: 'Active' })
-                .then(function(response) {
-                    if (response.success) {
-                        self.employees = response.data;
-                        self.populateEmployeeFilter();
-                        self.populateDepartmentFilter();
-                    }
-                });
-        },
-
-        /**
-         * Setup UI based on role
-         */
-        setupUI: function() {
-            // Set date inputs
-            this.elements.startDateInput.val(this.filters.startDate);
-            this.elements.endDateInput.val(this.filters.endDate);
-
-            if (this.isAdmin) {
-                $('.admin-only').removeClass('hidden');
-                $('#page-title').text('Performance Management');
-                $('#page-subtitle').text('Track and manage team performance');
-            } else {
-                $('.admin-only').addClass('hidden');
-                $('#page-title').text('My Tasks');
-                $('#page-subtitle').text('Track your assigned tasks and performance');
-            }
-        },
-
-        /**
-         * Populate employee filter
-         */
-        populateEmployeeFilter: function() {
-            const select = $('#employee-filter');
-            if (!select.length) return;
-
-            select.find('option:not(:first)').remove();
-
-            this.employees
-                .sort((a, b) => a.Name.localeCompare(b.Name))
-                .forEach(function(emp) {
-                    select.append(`<option value="${emp.EmployeeID}">${emp.Name}</option>`);
-                });
-        },
-
-        /**
-         * Populate department filter
-         */
-        populateDepartmentFilter: function() {
-            const select = $('#department-filter');
-            if (!select.length) return;
-
-            const departments = [...new Set(this.employees.map(e => e.Department).filter(Boolean))];
+            // Step 2: Load all members
+            await loadMembers();
             
-            select.find('option:not(:first)').remove();
-
-            departments.sort().forEach(function(dept) {
-                select.append(`<option value="${dept}">${dept}</option>`);
-            });
-        },
-
-        /**
-         * Calculate statistics
-         */
-        calculateStatistics: function() {
-            const tasks = this.tasks;
-
-            const total = tasks.length;
-            const completed = tasks.filter(t => t.Status === 'Completed').length;
-            const pending = tasks.filter(t => t.Status === 'Pending' || t.Status === 'In Progress').length;
-            const overdue = tasks.filter(t => t.isOverdue).length;
-
-            // On-time completion rate
-            const completedTasks = tasks.filter(t => t.Status === 'Completed');
-            const onTimeCompleted = completedTasks.filter(t => {
-                if (!t.CompletedDate || !t.DueDate) return false;
-                return new Date(t.CompletedDate) <= new Date(t.DueDate);
-            }).length;
-            const onTimeRate = completedTasks.length > 0 
-                ? Math.round((onTimeCompleted / completedTasks.length) * 100) 
-                : 0;
-
-            // Completion rate
-            const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-            // Average score
-            const scoredTasks = tasks.filter(t => t.Score);
-            const avgScore = scoredTasks.length > 0
-                ? scoredTasks.reduce((sum, t) => sum + parseFloat(t.Score), 0) / scoredTasks.length
-                : 0;
-
-            this.statistics = {
-                total,
-                completed,
-                pending,
-                overdue,
-                completionRate,
-                onTimeRate,
-                avgScore: Math.round(avgScore * 10) / 10
-            };
-
-            this.renderStatistics();
-        },
-
-        /**
-         * Render statistics
-         */
-        renderStatistics: function() {
-            const stats = this.statistics;
-            if (!stats) return;
-
-            // Animate counters
-            this.animateCounter('#total-tasks', stats.total);
-            this.animateCounter('#completed-tasks', stats.completed);
-            this.animateCounter('#pending-tasks', stats.pending);
-            this.animateCounter('#overdue-tasks', stats.overdue);
-
-            // Rates
-            $('#completion-rate').text(stats.completionRate + '%');
-            $('#ontime-rate').text(stats.onTimeRate + '%');
-            $('#avg-score').text(stats.avgScore.toFixed(1));
-
-            // Progress bars
-            $('#completion-rate-bar').css('width', stats.completionRate + '%');
-            $('#ontime-rate-bar').css('width', stats.onTimeRate + '%');
-
-            // Color coding for overdue
-            if (stats.overdue > 0) {
-                $('#overdue-tasks').addClass('text-red-600');
-                $('#overdue-warning').removeClass('hidden').text(`${stats.overdue} task${stats.overdue > 1 ? 's' : ''} overdue`);
-            } else {
-                $('#overdue-tasks').removeClass('text-red-600');
-                $('#overdue-warning').addClass('hidden');
-            }
-        },
-
-        /**
-         * Animate counter
-         */
-        animateCounter: function(selector, target) {
-            const element = $(selector);
-            const current = parseInt(element.text()) || 0;
+            // Step 3: Load all tasks
+            await loadTasks();
             
-            $({ count: current }).animate({ count: target }, {
-                duration: 500,
-                easing: 'swing',
-                step: function() {
-                    element.text(Math.round(this.count));
-                },
-                complete: function() {
-                    element.text(target);
-                }
-            });
-        },
-
-        /**
-         * Apply filters
-         */
-        applyFilters: function() {
-            let filtered = [...this.tasks];
-
-            // Search filter
-            if (this.filters.search) {
-                const search = this.filters.search.toLowerCase();
-                filtered = filtered.filter(task =>
-                    (task.Task && task.Task.toLowerCase().includes(search)) ||
-                    (task.Description && task.Description.toLowerCase().includes(search)) ||
-                    (task.employeeName && task.employeeName.toLowerCase().includes(search)) ||
-                    (task.EmployeeID && task.EmployeeID.toLowerCase().includes(search))
-                );
-            }
-
-            // Sort
-            filtered = this.sortData(filtered);
-
-            this.filteredTasks = filtered;
-            this.pagination.total = filtered.length;
-            this.pagination.page = 1;
-
-            this.renderTable();
-            this.updateCharts();
-        },
-
-        /**
-         * Sort data
-         */
-        sortData: function(data) {
-            const { column, direction } = this.sorting;
-            const multiplier = direction === 'asc' ? 1 : -1;
-
-            return data.sort((a, b) => {
-                let valA = a[column];
-                let valB = b[column];
-
-                // Handle dates
-                if (column === 'DueDate' || column === 'CompletedDate' || column === 'AssignedOn') {
-                    valA = valA ? new Date(valA) : new Date('9999-12-31');
-                    valB = valB ? new Date(valB) : new Date('9999-12-31');
-                }
-
-                // Handle numbers
-                if (column === 'Score') {
-                    valA = parseFloat(valA) || 0;
-                    valB = parseFloat(valB) || 0;
-                }
-
-                // Handle strings
-                if (typeof valA === 'string') {
-                    valA = valA.toLowerCase();
-                    valB = (valB || '').toLowerCase();
-                }
-
-                if (valA < valB) return -1 * multiplier;
-                if (valA > valB) return 1 * multiplier;
-                return 0;
-            });
-        },
-
-        /**
-         * Handle sort
-         */
-        handleSort: function(column) {
-            if (this.sorting.column === column) {
-                this.sorting.direction = this.sorting.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                this.sorting.column = column;
-                this.sorting.direction = 'asc';
-            }
-
-            this.updateSortIndicators();
-            this.applyFilters();
-        },
-
-        /**
-         * Update sort indicators
-         */
-        updateSortIndicators: function() {
-            $('.sortable-header .sort-icon').removeClass('fa-sort-up fa-sort-down text-primary-600').addClass('fa-sort text-gray-300');
+            // Step 4: Setup event listeners
+            setupEventListeners();
             
-            const header = $(`.sortable-header[data-column="${this.sorting.column}"]`);
-            const icon = header.find('.sort-icon');
+            // Step 5: Populate filter dropdowns
+            populateFilters();
             
-            icon.removeClass('fa-sort text-gray-300');
-            icon.addClass(this.sorting.direction === 'asc' ? 'fa-sort-up text-primary-600' : 'fa-sort-down text-primary-600');
-        },
+            // Step 6: Apply initial filters & render
+            applyFilters();
+            
+            // Step 7: Render charts
+            renderCharts();
+            
+            CONFIG.log('Performance Page initialized successfully');
+            
+        } catch (error) {
+            CONFIG.logError('Failed to initialize Performance Page:', error);
+            Utils.showToast('Failed to load performance page. Please refresh.', 'error');
+        } finally {
+            hidePageLoading();
+        }
+    };
 
-        /**
-         * Render tasks table
-         */
-        renderTable: function() {
-            const container = this.elements.tableBody;
-            container.empty();
+    /**
+     * Load application settings
+     */
+    const loadSettings = async () => {
+        try {
+            settings = await API.getSettings();
+            CONFIG.log('Settings loaded:', settings);
+        } catch (error) {
+            CONFIG.logError('Failed to load settings:', error);
+            settings = {};
+        }
+    };
 
-            const { page, perPage } = this.pagination;
-            const start = (page - 1) * perPage;
-            const end = start + perPage;
-            const pageData = this.filteredTasks.slice(start, end);
+    /**
+     * Load all members
+     */
+    const loadMembers = async () => {
+        try {
+            members = await API.getAllMembers();
+            // Filter only active members
+            members = members.filter(m => m.status === 'Active');
+            CONFIG.log(`Loaded ${members.length} active members`);
+        } catch (error) {
+            CONFIG.logError('Failed to load members:', error);
+            members = [];
+            throw error;
+        }
+    };
 
-            if (pageData.length === 0) {
-                container.html(`
-                    <tr>
-                        <td colspan="${this.isAdmin ? 9 : 7}" class="px-6 py-12 text-center text-gray-500">
-                            <i class="fas fa-tasks text-4xl mb-3"></i>
-                            <p class="text-lg font-medium">No tasks found</p>
-                            <p class="text-sm mt-1">Try adjusting your filters</p>
-                        </td>
-                    </tr>
-                `);
-                this.renderPagination();
-                return;
-            }
-
-            const self = this;
-
-            pageData.forEach(function(task, index) {
-                const rowNum = start + index + 1;
+    /**
+     * Load all tasks
+     */
+    const loadTasks = async () => {
+        try {
+            showTableLoading();
+            
+            tasks = await API.getAllTasks();
+            
+            // Process tasks - check for overdue
+            tasks = tasks.map(task => processTask(task));
+            
+            // Sort by deadline (upcoming first), then by status
+            tasks.sort((a, b) => {
+                // Overdue tasks first
+                if (a.status === 'Overdue' && b.status !== 'Overdue') return -1;
+                if (b.status === 'Overdue' && a.status !== 'Overdue') return 1;
                 
-                // Status styling
-                const statusStyles = {
-                    'Completed': 'bg-green-100 text-green-800',
-                    'Pending': 'bg-yellow-100 text-yellow-800',
-                    'In Progress': 'bg-blue-100 text-blue-800',
-                    'Cancelled': 'bg-gray-100 text-gray-800'
-                };
-                const statusClass = statusStyles[task.Status] || 'bg-gray-100 text-gray-800';
+                // Then by deadline
+                if (!a.deadline) return 1;
+                if (!b.deadline) return -1;
+                return new Date(a.deadline) - new Date(b.deadline);
+            });
+            
+            CONFIG.log(`Loaded ${tasks.length} tasks`);
+            
+        } catch (error) {
+            CONFIG.logError('Failed to load tasks:', error);
+            tasks = [];
+            throw error;
+        }
+    };
 
-                // Overdue styling
-                const isOverdue = task.isOverdue;
-                const rowClass = isOverdue ? 'bg-red-50 border-l-4 border-red-500' : '';
+    /**
+     * Process a task - calculate status, scores, etc.
+     */
+    const processTask = (task) => {
+        const processed = { ...task };
+        
+        // Auto-calculate overdue status
+        if (task.status !== 'Completed' && task.status !== 'Cancelled' && task.deadline) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const deadline = new Date(task.deadline);
+            deadline.setHours(0, 0, 0, 0);
+            
+            if (deadline < today) {
+                processed.status = 'Overdue';
+            }
+        }
+        
+        // Ensure score is a number
+        processed.score = parseFloat(processed.score) || 0;
+        processed.qualityScore = parseFloat(processed.qualityScore || processed.score) || 0;
+        
+        return processed;
+    };
 
-                // Due date styling
-                const dueDate = task.DueDate ? new Date(task.DueDate) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+    // ============================================
+    // 📊 SUMMARY & METRICS
+    // ============================================
+
+    /**
+     * Render summary cards
+     */
+    const renderSummary = () => {
+        const total = filteredTasks.length;
+        const completed = filteredTasks.filter(t => t.status === 'Completed').length;
+        const pending = filteredTasks.filter(t => t.status === 'Pending').length;
+        const inProgress = filteredTasks.filter(t => t.status === 'In Progress').length;
+        const overdue = filteredTasks.filter(t => t.status === 'Overdue').length;
+        
+        // Calculate average score (only for completed tasks with scores)
+        const completedWithScores = filteredTasks.filter(t => 
+            t.status === 'Completed' && t.qualityScore > 0
+        );
+        const avgScore = completedWithScores.length > 0
+            ? completedWithScores.reduce((sum, t) => sum + t.qualityScore, 0) / completedWithScores.length
+            : 0;
+        
+        // Update DOM
+        $(SELECTORS.summaryTotalTasks).text(total);
+        $(SELECTORS.summaryCompleted).text(completed);
+        $(SELECTORS.summaryPending).text(pending);
+        $(SELECTORS.summaryInProgress).text(inProgress);
+        $(SELECTORS.summaryOverdue).text(overdue);
+        $(SELECTORS.summaryAvgScore).text(avgScore.toFixed(1));
+        
+        // Add color indicators
+        if (overdue > 0) {
+            $(SELECTORS.summaryOverdue).addClass('text-red-600');
+        } else {
+            $(SELECTORS.summaryOverdue).removeClass('text-red-600');
+        }
+    };
+
+    /**
+     * Calculate task completion rate
+     */
+    const calculateCompletionRate = () => {
+        const total = tasks.length;
+        if (total === 0) return 0;
+        
+        const completed = tasks.filter(t => t.status === 'Completed').length;
+        return Math.round((completed / total) * 100);
+    };
+
+    /**
+     * Calculate deadline performance score
+     */
+    const calculateDeadlinePerformance = () => {
+        const completedTasks = tasks.filter(t => t.status === 'Completed' && t.deadline && t.completedOn);
+        if (completedTasks.length === 0) return 0;
+        
+        const onTime = completedTasks.filter(t => {
+            const deadline = new Date(t.deadline);
+            const completed = new Date(t.completedOn);
+            return completed <= deadline;
+        }).length;
+        
+        return Math.round((onTime / completedTasks.length) * 100);
+    };
+
+    // ============================================
+    // 🔍 FILTERING
+    // ============================================
+
+    /**
+     * Populate filter dropdowns
+     */
+    const populateFilters = () => {
+        // Department filter
+        const departments = [...new Set(members.map(m => m.department).filter(Boolean))];
+        let deptOptions = '<option value="all">All Departments</option>';
+        departments.sort().forEach(dept => {
+            deptOptions += `<option value="${Utils.escapeHtml(dept)}">${Utils.escapeHtml(dept)}</option>`;
+        });
+        $(SELECTORS.filterDepartment).html(deptOptions);
+        
+        // Employee filter
+        let empOptions = '<option value="all">All Employees</option>';
+        members.sort((a, b) => a.name.localeCompare(b.name)).forEach(member => {
+            empOptions += `<option value="${member.memberId}">${Utils.escapeHtml(member.name)}</option>`;
+        });
+        $(SELECTORS.filterEmployee).html(empOptions);
+        
+        // Status filter
+        let statusOptions = '<option value="all">All Status</option>';
+        Object.keys(TASK_STATUS).forEach(status => {
+            statusOptions += `<option value="${status}">${TASK_STATUS[status].label}</option>`;
+        });
+        $(SELECTORS.filterStatus).html(statusOptions);
+    };
+
+    /**
+     * Apply all filters and re-render
+     */
+    const applyFilters = () => {
+        let filtered = [...tasks];
+        
+        // Department filter
+        const department = $(SELECTORS.filterDepartment).val();
+        if (department && department !== 'all') {
+            const memberIdsInDept = members
+                .filter(m => m.department === department)
+                .map(m => m.memberId);
+            filtered = filtered.filter(t => memberIdsInDept.includes(t.memberId));
+        }
+        
+        // Employee filter
+        const employeeId = $(SELECTORS.filterEmployee).val();
+        if (employeeId && employeeId !== 'all') {
+            filtered = filtered.filter(t => t.memberId === employeeId);
+        }
+        
+        // Status filter
+        const status = $(SELECTORS.filterStatus).val();
+        if (status && status !== 'all') {
+            filtered = filtered.filter(t => t.status === status);
+        }
+        
+        // Search filter
+        const search = $(SELECTORS.searchInput).val();
+        if (search) {
+            const query = search.toLowerCase().trim();
+            filtered = filtered.filter(t => {
+                const member = getEmployeeById(t.memberId);
+                const title = (t.title || '').toLowerCase();
+                const description = (t.description || t.notes || '').toLowerCase();
+                const memberName = (member?.name || '').toLowerCase();
                 
-                let dueDateClass = 'text-gray-500';
-                if (dueDate && task.Status !== 'Completed') {
-                    if (dueDate < today) {
-                        dueDateClass = 'text-red-600 font-medium';
-                    } else if (dueDate.getTime() === today.getTime()) {
-                        dueDateClass = 'text-orange-600 font-medium';
-                    } else if (dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)) {
-                        dueDateClass = 'text-yellow-600';
-                    }
-                }
+                return title.includes(query) || 
+                       description.includes(query) || 
+                       memberName.includes(query);
+            });
+        }
+        
+        filteredTasks = filtered;
+        
+        // Reset pagination
+        pagination.page = 1;
+        pagination.totalPages = Math.ceil(filteredTasks.length / pagination.perPage) || 1;
+        
+        // Render
+        renderSummary();
+        renderTaskTable();
+        renderPagination();
+    };
 
-                // Score display
-                const score = task.Score ? parseFloat(task.Score).toFixed(1) : '-';
-                const scoreClass = task.Score 
-                    ? (task.Score >= 4 ? 'text-green-600' : task.Score >= 3 ? 'text-yellow-600' : 'text-red-600')
-                    : 'text-gray-400';
+    /**
+     * Clear all filters
+     */
+    const clearFilters = () => {
+        $(SELECTORS.filterDepartment).val('all');
+        $(SELECTORS.filterEmployee).val('all');
+        $(SELECTORS.filterStatus).val('all');
+        $(SELECTORS.searchInput).val('');
+        
+        applyFilters();
+        Utils.showToast('Filters cleared', 'info');
+    };
 
-                container.append(`
-                    <tr class="task-row hover:bg-gray-50 cursor-pointer transition-colors ${rowClass}" data-task-id="${task.TaskID}">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            ${self.isAdmin ? `<input type="checkbox" class="task-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500" data-task-id="${task.TaskID}">` : rowNum}
-                        </td>
-                        ${self.isAdmin ? `
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 text-xs font-medium">
-                                        ${Utils.string.initials(task.employeeName || 'U')}
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm font-medium text-gray-900">${Utils.string.escape(task.employeeName || '-')}</p>
-                                        <p class="text-xs text-gray-500">${task.department || ''}</p>
-                                    </div>
+    // ============================================
+    // 📋 TABLE RENDERING
+    // ============================================
+
+    /**
+     * Render the task table
+     */
+    const renderTaskTable = () => {
+        const tableBody = $(SELECTORS.taskTableBody);
+        
+        if (filteredTasks.length === 0) {
+            renderEmptyTable();
+            return;
+        }
+        
+        // Get paginated tasks
+        const startIndex = (pagination.page - 1) * pagination.perPage;
+        const endIndex = startIndex + pagination.perPage;
+        const paginatedTasks = filteredTasks.slice(startIndex, endIndex);
+        
+        let html = '';
+        
+        paginatedTasks.forEach((task, index) => {
+            const member = getEmployeeById(task.memberId);
+            const memberName = member?.name || 'Unknown';
+            const memberPhoto = member?.photoURL || Utils.getAvatarUrl(memberName);
+            const department = member?.department || 'N/A';
+            const memberLink = Utils.getMemberLink(task.memberId);
+            
+            const statusConfig = TASK_STATUS[task.status] || TASK_STATUS['Pending'];
+            const deadlineDisplay = formatDeadline(task.deadline);
+            const isOverdue = task.status === 'Overdue';
+            const scoreDisplay = task.qualityScore > 0 ? task.qualityScore.toFixed(0) : '—';
+            
+            html += `
+                <tr class="hover:bg-gray-50 transition-colors group" data-task-id="${task.taskId}">
+                    <!-- Employee -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="${memberLink}" class="flex items-center group/link">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <img class="h-10 w-10 rounded-full object-cover border-2 border-transparent group-hover/link:border-primary-500 transition-all" 
+                                     src="${memberPhoto}" 
+                                     alt="${Utils.escapeHtml(memberName)}"
+                                     onerror="this.src='${Utils.getAvatarUrl(memberName)}'">
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900 group-hover/link:text-primary-600 transition-colors">
+                                    ${Utils.escapeHtml(memberName)}
                                 </div>
-                            </td>
-                        ` : ''}
-                        <td class="px-6 py-4">
-                            <div class="max-w-xs">
-                                <p class="text-sm font-medium text-gray-900 truncate" title="${Utils.string.escape(task.Task)}">
-                                    ${Utils.string.escape(task.Task)}
+                                <div class="text-xs text-gray-500">${Utils.escapeHtml(department)}</div>
+                            </div>
+                        </a>
+                    </td>
+                    
+                    <!-- Task Title -->
+                    <td class="px-6 py-4">
+                        <div class="max-w-xs">
+                            <p class="text-sm font-medium text-gray-900 truncate ${task.status === 'Completed' ? 'line-through text-gray-500' : ''}">
+                                ${Utils.escapeHtml(task.title)}
+                            </p>
+                            ${task.description || task.notes ? `
+                                <p class="text-xs text-gray-500 truncate mt-1" title="${Utils.escapeHtml(task.description || task.notes)}">
+                                    ${Utils.escapeHtml((task.description || task.notes).substring(0, 50))}${(task.description || task.notes).length > 50 ? '...' : ''}
                                 </p>
-                                ${task.Description ? `
-                                    <p class="text-xs text-gray-500 truncate mt-0.5" title="${Utils.string.escape(task.Description)}">
-                                        ${Utils.string.escape(task.Description)}
-                                    </p>
-                                ` : ''}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap ${dueDateClass}">
-                            <div class="text-sm">
-                                ${task.DueDate ? Utils.date.format(task.DueDate, 'short') : '-'}
-                                ${isOverdue ? '<i class="fas fa-exclamation-circle ml-1 text-red-500"></i>' : ''}
-                            </div>
-                            ${task.DueDate ? `<div class="text-xs text-gray-400">${Utils.date.timeAgo(task.DueDate)}</div>` : ''}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            ${task.CompletedDate ? Utils.date.format(task.CompletedDate, 'short') : '-'}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full ${statusClass}">
-                                ${task.Status}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${scoreClass}">
-                            ${score !== '-' ? `
-                                <div class="flex items-center gap-1">
-                                    <i class="fas fa-star text-yellow-400 text-xs"></i>
-                                    ${score}
-                                </div>
-                            ` : score}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <div class="flex items-center justify-end gap-1">
-                                ${task.Status !== 'Completed' && !self.isAdmin ? `
-                                    <button class="complete-task-btn p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" 
-                                            data-task-id="${task.TaskID}" title="Mark Complete">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                ` : ''}
-                                ${self.isAdmin ? `
-                                    ${task.Status === 'Completed' && !task.Score ? `
-                                        <button class="score-task-btn p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors" 
-                                                data-task-id="${task.TaskID}" title="Score Task">
-                                            <i class="fas fa-star"></i>
-                                        </button>
-                                    ` : ''}
-                                    <button class="edit-task-btn p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" 
-                                            data-task-id="${task.TaskID}" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="delete-task-btn p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                                            data-task-id="${task.TaskID}" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                ` : ''}
-                                <button class="view-task-btn p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" 
-                                        data-task-id="${task.TaskID}" title="View Details">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `);
-            });
-
-            this.renderPagination();
-        },
-
-        /**
-         * Render pagination
-         */
-        renderPagination: function() {
-            const container = $('#pagination-container');
-            container.empty();
-
-            const { page, perPage, total } = this.pagination;
-            const totalPages = Math.ceil(total / perPage);
-
-            if (total === 0) {
-                $('#page-info').text('No records');
-                return;
-            }
-
-            const start = (page - 1) * perPage + 1;
-            const end = Math.min(page * perPage, total);
-            $('#page-info').text(`Showing ${start}-${end} of ${total} tasks`);
-
-            if (totalPages <= 1) return;
-
-            let html = '<div class="flex items-center gap-1">';
-
-            // Previous
-            html += `
-                <button class="page-btn px-3 py-2 rounded-lg border ${page === 1 ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-100'}"
-                        data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            `;
-
-            // Page numbers
-            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
-                const pageNum = i <= 3 ? i : (i === 4 && totalPages > 5 ? '...' : totalPages - (5 - i));
-                if (pageNum === '...') {
-                    html += '<span class="px-2 text-gray-400">...</span>';
-                } else {
-                    html += `
-                        <button class="page-btn px-3 py-2 rounded-lg border ${pageNum === page ? 'bg-primary-600 text-white border-primary-600' : 'hover:bg-gray-100'}"
-                                data-page="${pageNum}">${pageNum}</button>
-                    `;
-                }
-            }
-
-            // Next
-            html += `
-                <button class="page-btn px-3 py-2 rounded-lg border ${page === totalPages ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-100'}"
-                        data-page="${page + 1}" ${page === totalPages ? 'disabled' : ''}>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            `;
-
-            html += '</div>';
-            container.html(html);
-        },
-
-        /**
-         * Go to page
-         */
-        goToPage: function(page) {
-            this.pagination.page = page;
-            this.renderTable();
-            
-            $('html, body').animate({
-                scrollTop: $('#tasks-table').offset().top - 100
-            }, 300);
-        },
-
-        /**
-         * Initialize charts
-         */
-        initCharts: function() {
-            this.initPerformanceChart();
-            this.initTrendChart();
-        },
-
-        /**
-         * Initialize performance doughnut chart
-         */
-        initPerformanceChart: function() {
-            const ctx = document.getElementById('performance-chart-canvas');
-            if (!ctx) return;
-
-            if (this.charts.performance) {
-                this.charts.performance.destroy();
-            }
-
-            const stats = this.statistics || {};
-
-            this.charts.performance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Completed', 'Pending', 'In Progress', 'Overdue'],
-                    datasets: [{
-                        data: [
-                            stats.completed || 0,
-                            this.tasks.filter(t => t.Status === 'Pending').length,
-                            this.tasks.filter(t => t.Status === 'In Progress').length,
-                            stats.overdue || 0
-                        ],
-                        backgroundColor: ['#10B981', '#F59E0B', '#3B82F6', '#EF4444'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true
-                            }
-                        }
-                    }
-                }
-            });
-        },
-
-        /**
-         * Initialize trend chart
-         */
-        initTrendChart: function() {
-            const ctx = document.getElementById('trend-chart-canvas');
-            if (!ctx) return;
-
-            if (this.charts.trend) {
-                this.charts.trend.destroy();
-            }
-
-            // Group tasks by month
-            const monthlyData = {};
-            this.tasks.forEach(task => {
-                if (task.CompletedDate) {
-                    const month = task.CompletedDate.substring(0, 7);
-                    if (!monthlyData[month]) {
-                        monthlyData[month] = { completed: 0, onTime: 0 };
-                    }
-                    monthlyData[month].completed++;
-                    if (new Date(task.CompletedDate) <= new Date(task.DueDate)) {
-                        monthlyData[month].onTime++;
-                    }
-                }
-            });
-
-            const labels = Object.keys(monthlyData).sort().slice(-6);
-            const completedData = labels.map(m => monthlyData[m]?.completed || 0);
-            const onTimeData = labels.map(m => monthlyData[m]?.onTime || 0);
-
-            this.charts.trend = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels.map(m => {
-                        const [year, month] = m.split('-');
-                        return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                    }),
-                    datasets: [
-                        {
-                            label: 'Completed',
-                            data: completedData,
-                            borderColor: '#10B981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'On Time',
-                            data: onTimeData,
-                            borderColor: '#3B82F6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        },
-
-        /**
-         * Update charts
-         */
-        updateCharts: function() {
-            this.initPerformanceChart();
-        },
-
-        /**
-         * Show assign task modal
-         */
-        showAssignTaskModal: function() {
-            $('#assign-task-form')[0].reset();
-            
-            // Set minimum due date to today
-            const today = Utils.date.format(new Date(), 'iso');
-            $('#task-due-date').attr('min', today).val('');
-
-            // Populate employee select
-            const employeeSelect = $('#task-employee');
-            employeeSelect.find('option:not(:first)').remove();
-            
-            this.employees.forEach(emp => {
-                employeeSelect.append(`<option value="${emp.EmployeeID}">${emp.Name} (${emp.Department || 'N/A'})</option>`);
-            });
-
-            Utils.modal.show('assign-task-modal');
-        },
-
-        /**
-         * Handle assign task
-         */
-        handleAssignTask: function() {
-            const self = this;
-
-            const formData = {
-                adminId: this.user.employeeId,
-                employeeId: $('#task-employee').val(),
-                task: $('#task-title').val().trim(),
-                description: $('#task-description').val().trim(),
-                dueDate: $('#task-due-date').val(),
-                notes: $('#task-notes').val().trim()
-            };
-
-            // Validation
-            if (!formData.employeeId || !formData.task || !formData.dueDate) {
-                Utils.toast.error('Please fill in all required fields');
-                return;
-            }
-
-            const submitBtn = $('#assign-task-form button[type="submit"]');
-            submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Assigning...');
-
-            API.performance.assign(formData)
-                .then(function(response) {
-                    if (response.success) {
-                        Utils.toast.success('Task assigned successfully');
-                        Utils.modal.hide('assign-task-modal');
-                        self.loadTasks();
-                    } else {
-                        Utils.toast.error(response.error || 'Failed to assign task');
-                    }
-                })
-                .catch(function(error) {
-                    Utils.toast.error(error.message || 'Failed to assign task');
-                })
-                .finally(function() {
-                    submitBtn.prop('disabled', false).html('<i class="fas fa-plus mr-2"></i>Assign Task');
-                });
-        },
-
-        /**
-         * Show task details modal
-         */
-        showTaskDetails: function(taskId) {
-            const task = this.tasks.find(t => t.TaskID === taskId);
-            if (!task) {
-                Utils.toast.error('Task not found');
-                return;
-            }
-
-            this.selectedTask = task;
-
-            // Populate modal
-            $('#view-task-title').text(task.Task);
-            $('#view-task-employee').text(task.employeeName || task.EmployeeID);
-            $('#view-task-department').text(task.department || '-');
-            $('#view-task-description').text(task.Description || 'No description provided');
-            $('#view-task-due-date').text(task.DueDate ? Utils.date.format(task.DueDate, 'full') : '-');
-            $('#view-task-completed-date').text(task.CompletedDate ? Utils.date.format(task.CompletedDate, 'full') : '-');
-            $('#view-task-assigned-by').text(task.AssignedBy || '-');
-            $('#view-task-assigned-on').text(task.AssignedOn ? Utils.date.format(task.AssignedOn, 'full') : '-');
-            $('#view-task-notes').text(task.Notes || '-');
-
-            // Status badge
-            const statusStyles = {
-                'Completed': 'bg-green-100 text-green-800',
-                'Pending': 'bg-yellow-100 text-yellow-800',
-                'In Progress': 'bg-blue-100 text-blue-800'
-            };
-            $('#view-task-status').removeClass().addClass(`px-3 py-1 text-sm font-medium rounded-full ${statusStyles[task.Status] || 'bg-gray-100 text-gray-800'}`).text(task.Status);
-
-            // Score
-            if (task.Score) {
-                $('#view-task-score').text(parseFloat(task.Score).toFixed(1) + '/5');
-                $('#view-task-score-section').removeClass('hidden');
-            } else {
-                $('#view-task-score-section').addClass('hidden');
-            }
-
-            // Overdue warning
-            if (task.isOverdue) {
-                $('#view-task-overdue-warning').removeClass('hidden');
-            } else {
-                $('#view-task-overdue-warning').addClass('hidden');
-            }
-
-            // Show/hide action buttons based on status and role
-            if (task.Status !== 'Completed' && !this.isAdmin) {
-                $('#complete-task-btn').data('task-id', taskId).removeClass('hidden');
-            } else {
-                $('#complete-task-btn').addClass('hidden');
-            }
-
-            Utils.modal.show('view-task-modal');
-        },
-
-        /**
-         * Handle complete task
-         */
-        handleCompleteTask: function(taskId) {
-            const self = this;
-            const task = this.tasks.find(t => t.TaskID === taskId);
-            
-            if (!task) {
-                Utils.toast.error('Task not found');
-                return;
-            }
-
-            Utils.modal.confirm({
-                title: 'Complete Task',
-                message: `Are you sure you want to mark "${task.Task}" as completed?`,
-                confirmText: 'Complete',
-                confirmClass: 'bg-green-600 hover:bg-green-700',
-                onConfirm: function() {
-                    self.processCompleteTask(taskId);
-                }
-            });
-        },
-
-        /**
-         * Process complete task
-         */
-        processCompleteTask: function(taskId) {
-            const self = this;
-
-            Utils.toast.info('Marking task as complete...');
-
-            API.performance.complete({
-                employeeId: this.user.employeeId,
-                taskId: taskId
-            })
-            .then(function(response) {
-                if (response.success) {
-                    Utils.toast.success('Task completed!');
-                    self.hideModals();
-                    self.loadTasks();
-                } else {
-                    Utils.toast.error(response.error || 'Failed to complete task');
-                }
-            })
-            .catch(function(error) {
-                Utils.toast.error(error.message || 'Failed to complete task');
-            });
-        },
-
-        /**
-         * Show score modal
-         */
-        showScoreModal: function(taskId) {
-            const task = this.tasks.find(t => t.TaskID === taskId);
-            if (!task) {
-                Utils.toast.error('Task not found');
-                return;
-            }
-
-            this.selectedTask = task;
-
-            $('#score-task-id').val(taskId);
-            $('#score-task-title').text(task.Task);
-            $('#score-task-employee').text(task.employeeName || task.EmployeeID);
-            $('#task-score').val(task.Score || '');
-            $('#score-notes').val(task.Notes || '');
-
-            Utils.modal.show('score-task-modal');
-        },
-
-        /**
-         * Handle score task
-         */
-        handleScoreTask: function() {
-            const self = this;
-
-            const taskId = $('#score-task-id').val();
-            const score = parseFloat($('#task-score').val());
-            const notes = $('#score-notes').val().trim();
-
-            if (!score || score < 1 || score > 5) {
-                Utils.toast.error('Please enter a valid score between 1 and 5');
-                return;
-            }
-
-            const submitBtn = $('#score-task-form button[type="submit"]');
-            submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Saving...');
-
-            API.performance.update({
-                adminId: this.user.employeeId,
-                taskId: taskId,
-                updates: {
-                    Score: score,
-                    Notes: notes
-                }
-            })
-            .then(function(response) {
-                if (response.success) {
-                    Utils.toast.success('Score saved successfully');
-                    Utils.modal.hide('score-task-modal');
-                    self.loadTasks();
-                } else {
-                    Utils.toast.error(response.error || 'Failed to save score');
-                }
-            })
-            .catch(function(error) {
-                Utils.toast.error(error.message || 'Failed to save score');
-            })
-            .finally(function() {
-                submitBtn.prop('disabled', false).html('<i class="fas fa-star mr-2"></i>Save Score');
-            });
-        },
-
-        /**
-         * Show edit task modal
-         */
-        showEditTaskModal: function(taskId) {
-            const task = this.tasks.find(t => t.TaskID === taskId);
-            if (!task) {
-                Utils.toast.error('Task not found');
-                return;
-            }
-
-            this.selectedTask = task;
-
-            // Populate employee select
-            const employeeSelect = $('#edit-task-employee');
-            employeeSelect.find('option:not(:first)').remove();
-            this.employees.forEach(emp => {
-                employeeSelect.append(`<option value="${emp.EmployeeID}" ${emp.EmployeeID === task.EmployeeID ? 'selected' : ''}>${emp.Name}</option>`);
-            });
-
-            $('#edit-task-id').val(taskId);
-            $('#edit-task-title').val(task.Task);
-            $('#edit-task-description').val(task.Description || '');
-            $('#edit-task-due-date').val(task.DueDate || '');
-            $('#edit-task-status').val(task.Status);
-            $('#edit-task-notes').val(task.Notes || '');
-
-            Utils.modal.show('edit-task-modal');
-        },
-
-        /**
-         * Handle delete task
-         */
-        handleDeleteTask: function(taskId) {
-            const self = this;
-            const task = this.tasks.find(t => t.TaskID === taskId);
-            
-            if (!task) {
-                Utils.toast.error('Task not found');
-                return;
-            }
-
-            Utils.modal.confirm({
-                title: 'Delete Task',
-                message: `Are you sure you want to delete "${task.Task}"? This action cannot be undone.`,
-                confirmText: 'Delete',
-                confirmClass: 'bg-red-600 hover:bg-red-700',
-                onConfirm: function() {
-                    self.processDeleteTask(taskId);
-                }
-            });
-        },
-
-        /**
-         * Process delete task
-         */
-        processDeleteTask: function(taskId) {
-            const self = this;
-
-            Utils.toast.info('Deleting task...');
-
-            API.performance.delete({
-                adminId: this.user.employeeId,
-                taskId: taskId
-            })
-            .then(function(response) {
-                if (response.success) {
-                    Utils.toast.success('Task deleted');
-                    self.loadTasks();
-                } else {
-                    Utils.toast.error(response.error || 'Failed to delete task');
-                }
-            })
-            .catch(function(error) {
-                Utils.toast.error(error.message || 'Failed to delete task');
-            });
-        },
-
-        /**
-         * Update bulk action state
-         */
-        updateBulkActionState: function() {
-            const checkedCount = $('.task-checkbox:checked').length;
-            
-            if (checkedCount > 0) {
-                $('#bulk-actions').removeClass('hidden');
-                $('#selected-count').text(checkedCount);
-            } else {
-                $('#bulk-actions').addClass('hidden');
-            }
-
-            // Update select all checkbox
-            const totalCheckboxes = $('.task-checkbox').length;
-            $('#select-all-tasks').prop('checked', checkedCount === totalCheckboxes && totalCheckboxes > 0);
-        },
-
-        /**
-         * Clear filters
-         */
-        clearFilters: function() {
-            this.setDefaultDateRange();
-            this.filters.status = '';
-            this.filters.employeeId = '';
-            this.filters.department = '';
-            this.filters.search = '';
-
-            $('#status-filter').val('');
-            $('#employee-filter').val('');
-            $('#department-filter').val('');
-            $('#search-input').val('');
-            this.elements.startDateInput.val(this.filters.startDate);
-            this.elements.endDateInput.val(this.filters.endDate);
-
-            $('.status-quick-filter').removeClass('ring-2 ring-primary-500');
-
-            this.loadTasks();
-        },
-
-        /**
-         * Export tasks
-         */
-        exportTasks: function() {
-            if (this.filteredTasks.length === 0) {
-                Utils.toast.warning('No tasks to export');
-                return;
-            }
-
-            Utils.toast.info('Generating export...');
-
-            const columns = this.isAdmin
-                ? ['TaskID', 'EmployeeID', 'employeeName', 'department', 'Task', 'Description', 'DueDate', 'CompletedDate', 'Status', 'Score', 'Notes']
-                : ['TaskID', 'Task', 'Description', 'DueDate', 'CompletedDate', 'Status', 'Score', 'Notes'];
-
-            const csv = Utils.export.toCSV(this.filteredTasks, columns);
-            const filename = `performance-tasks-${Utils.date.format(new Date(), 'iso')}.csv`;
-
-            Utils.export.download(csv, filename, 'text/csv');
-            Utils.toast.success('Export downloaded');
-        },
-
-        /**
-         * Refresh data
-         */
-        refresh: function() {
-            const self = this;
-            
-            $('#refresh-btn i').addClass('animate-spin');
-            
-            this.loadTasks().finally(function() {
-                $('#refresh-btn i').removeClass('animate-spin');
-                Utils.toast.success('Data refreshed');
-            });
-        },
-
-        /**
-         * Toggle view
-         */
-        toggleView: function(view) {
-            $('.view-toggle-btn').removeClass('bg-primary-600 text-white').addClass('bg-white text-gray-700');
-            $(`.view-toggle-btn[data-view="${view}"]`).removeClass('bg-white text-gray-700').addClass('bg-primary-600 text-white');
-
-            if (view === 'table') {
-                $('#table-view').removeClass('hidden');
-                $('#kanban-view').addClass('hidden');
-            } else if (view === 'kanban') {
-                $('#table-view').addClass('hidden');
-                $('#kanban-view').removeClass('hidden');
-                this.renderKanbanView();
-            }
-        },
-
-        /**
-         * Render kanban view
-         */
-        renderKanbanView: function() {
-            const statuses = ['Pending', 'In Progress', 'Completed'];
-            const container = $('#kanban-view');
-            
-            container.empty();
-            container.addClass('grid grid-cols-1 md:grid-cols-3 gap-4');
-
-            const self = this;
-
-            statuses.forEach(function(status) {
-                const statusTasks = self.filteredTasks.filter(t => t.Status === status);
-                const statusColors = {
-                    'Pending': 'border-yellow-400 bg-yellow-50',
-                    'In Progress': 'border-blue-400 bg-blue-50',
-                    'Completed': 'border-green-400 bg-green-50'
-                };
-
-                let tasksHtml = statusTasks.length === 0 
-                    ? '<p class="text-gray-400 text-center py-4">No tasks</p>'
-                    : statusTasks.map(task => `
-                        <div class="bg-white p-3 rounded-lg shadow-sm border cursor-pointer hover:shadow-md transition-shadow task-row" data-task-id="${task.TaskID}">
-                            <p class="font-medium text-gray-900 text-sm">${Utils.string.escape(task.Task)}</p>
-                            ${self.isAdmin ? `<p class="text-xs text-gray-500 mt-1">${task.employeeName || task.EmployeeID}</p>` : ''}
-                            <div class="flex items-center justify-between mt-2 text-xs">
-                                <span class="${task.isOverdue ? 'text-red-600' : 'text-gray-500'}">
-                                    <i class="far fa-calendar mr-1"></i>${task.DueDate ? Utils.date.format(task.DueDate, 'short') : '-'}
-                                </span>
-                                ${task.Score ? `
-                                    <span class="text-yellow-600">
-                                        <i class="fas fa-star mr-1"></i>${parseFloat(task.Score).toFixed(1)}
-                                    </span>
-                                ` : ''}
-                            </div>
+                            ` : ''}
                         </div>
-                    `).join('');
-
-                container.append(`
-                    <div class="rounded-xl border-t-4 ${statusColors[status]} p-4">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-semibold text-gray-800">${status}</h3>
-                            <span class="bg-white px-2 py-1 rounded-full text-xs font-medium text-gray-600">
-                                ${statusTasks.length}
+                    </td>
+                    
+                    <!-- Deadline -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 ${isOverdue ? 'text-red-500' : 'text-gray-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-700'}">
+                                ${deadlineDisplay}
                             </span>
                         </div>
-                        <div class="space-y-3 max-h-96 overflow-y-auto">
-                            ${tasksHtml}
+                    </td>
+                    
+                    <!-- Status -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${renderStatusBadge(task.status)}
+                    </td>
+                    
+                    <!-- Quality Score -->
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        ${renderScoreBadge(task.qualityScore)}
+                    </td>
+                    
+                    <!-- Actions -->
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition-colors btn-edit-task" 
+                                    data-task-id="${task.taskId}"
+                                    title="Edit Task">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors btn-delete-task" 
+                                    data-task-id="${task.taskId}"
+                                    title="Delete Task">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
                         </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tableBody.html(html);
+        
+        // Attach action button events
+        attachTableActionEvents();
+    };
+
+    /**
+     * Render empty table state
+     */
+    const renderEmptyTable = () => {
+        const tableBody = $(SELECTORS.taskTableBody);
+        
+        const hasFilters = $(SELECTORS.filterDepartment).val() !== 'all' ||
+                          $(SELECTORS.filterEmployee).val() !== 'all' ||
+                          $(SELECTORS.filterStatus).val() !== 'all' ||
+                          $(SELECTORS.searchInput).val();
+        
+        const message = hasFilters 
+            ? 'No tasks match your filters.'
+            : 'No tasks found. Start by adding a task.';
+        
+        tableBody.html(`
+            <tr>
+                <td colspan="6" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                        </div>
+                        <p class="text-gray-500 text-lg font-medium mb-2">${Utils.escapeHtml(message)}</p>
+                        ${hasFilters ? `
+                            <button id="btnClearFiltersEmpty" class="mt-2 text-primary-600 hover:text-primary-700 text-sm font-medium">
+                                Clear Filters
+                            </button>
+                        ` : `
+                            <button id="btnAddFirstTask" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Add First Task
+                            </button>
+                        `}
                     </div>
-                `);
-            });
-        },
+                </td>
+            </tr>
+        `);
+        
+        // Attach events
+        $('#btnAddFirstTask').on('click', openAddModal);
+        $('#btnClearFiltersEmpty').on('click', clearFilters);
+    };
 
-        /**
-         * Hide modals
-         */
-        hideModals: function() {
-            Utils.modal.hide('assign-task-modal');
-            Utils.modal.hide('view-task-modal');
-            Utils.modal.hide('score-task-modal');
-            Utils.modal.hide('edit-task-modal');
-            this.selectedTask = null;
-        },
+    /**
+     * Attach events to table action buttons
+     */
+    const attachTableActionEvents = () => {
+        // Edit task
+        $('.btn-edit-task').off('click').on('click', function(e) {
+            e.stopPropagation();
+            const taskId = $(this).data('task-id');
+            openEditModal(taskId);
+        });
+        
+        // Delete task
+        $('.btn-delete-task').off('click').on('click', async function(e) {
+            e.stopPropagation();
+            const taskId = $(this).data('task-id');
+            await confirmDeleteTask(taskId);
+        });
+        
+        // Row click to edit
+        $(SELECTORS.taskTableBody).find('tr[data-task-id]').off('click').on('click', function(e) {
+            if (!$(e.target).closest('a, button').length) {
+                const taskId = $(this).data('task-id');
+                openEditModal(taskId);
+            }
+        });
+    };
 
-        /**
-         * Show loading
-         */
-        showLoading: function() {
-            $('#loading-overlay').removeClass('hidden');
-        },
+    // ============================================
+    // 📄 PAGINATION
+    // ============================================
 
-        /**
-         * Hide loading
-         */
-        hideLoading: function() {
-            $('#loading-overlay').addClass('hidden');
-        },
+    /**
+     * Render pagination controls
+     */
+    const renderPagination = () => {
+        const total = filteredTasks.length;
+        const start = total === 0 ? 0 : (pagination.page - 1) * pagination.perPage + 1;
+        const end = Math.min(pagination.page * pagination.perPage, total);
+        
+        // Update info text
+        $(SELECTORS.paginationInfo).text(`Showing ${start} - ${end} of ${total} tasks`);
+        
+        // Update button states
+        $(SELECTORS.btnPrevPage).prop('disabled', pagination.page <= 1);
+        $(SELECTORS.btnNextPage).prop('disabled', pagination.page >= pagination.totalPages);
+        
+        // Show/hide pagination
+        if (total <= pagination.perPage) {
+            $(SELECTORS.paginationContainer).addClass('hidden');
+        } else {
+            $(SELECTORS.paginationContainer).removeClass('hidden');
+        }
+    };
 
-        /**
-         * Show table loading
-         */
-        showTableLoading: function() {
-            $('#table-loading').removeClass('hidden');
-        },
+    /**
+     * Go to previous page
+     */
+    const prevPage = () => {
+        if (pagination.page > 1) {
+            pagination.page--;
+            renderTaskTable();
+            renderPagination();
+        }
+    };
 
-        /**
-         * Hide table loading
-         */
-        hideTableLoading: function() {
-            $('#table-loading').addClass('hidden');
-        },
-
-        /**
-         * Cleanup
-         */
-        destroy: function() {
-            Object.values(this.charts).forEach(chart => {
-                if (chart) chart.destroy();
-            });
+    /**
+     * Go to next page
+     */
+    const nextPage = () => {
+        if (pagination.page < pagination.totalPages) {
+            pagination.page++;
+            renderTaskTable();
+            renderPagination();
         }
     };
 
     // ============================================
-    // INITIALIZE
+    // 📊 CHART RENDERING
     // ============================================
 
-    $(document).ready(function() {
-        PerformancePage.init();
-    });
+    /**
+     * Render all charts
+     */
+    const renderCharts = () => {
+        renderCompletionChart();
+        renderDepartmentChart();
+        renderMonthlyChart();
+    };
 
-    $(window).on('beforeunload', function() {
-        PerformancePage.destroy();
-    });
+    /**
+     * Render task completion pie chart
+     */
+    const renderCompletionChart = () => {
+        const canvas = document.getElementById('chartCompletion');
+        if (!canvas) return;
+        
+        // Destroy existing chart
+        if (charts.completion) {
+            charts.completion.destroy();
+        }
+        
+        const completed = tasks.filter(t => t.status === 'Completed').length;
+        const inProgress = tasks.filter(t => t.status === 'In Progress').length;
+        const pending = tasks.filter(t => t.status === 'Pending').length;
+        const overdue = tasks.filter(t => t.status === 'Overdue').length;
+        
+        const ctx = canvas.getContext('2d');
+        
+        charts.completion = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'In Progress', 'Pending', 'Overdue'],
+                datasets: [{
+                    data: [completed, inProgress, pending, overdue],
+                    backgroundColor: [
+                        CHART_COLORS.success,
+                        CHART_COLORS.info,
+                        CHART_COLORS.warning,
+                        CHART_COLORS.danger
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+    };
 
-    window.PerformancePage = PerformancePage;
+    /**
+     * Render department productivity bar chart
+     */
+    const renderDepartmentChart = () => {
+        const canvas = document.getElementById('chartDepartment');
+        if (!canvas) return;
+        
+        // Destroy existing chart
+        if (charts.department) {
+            charts.department.destroy();
+        }
+        
+        // Group tasks by department
+        const departments = [...new Set(members.map(m => m.department).filter(Boolean))];
+        const deptData = departments.map(dept => {
+            const memberIds = members.filter(m => m.department === dept).map(m => m.memberId);
+            const deptTasks = tasks.filter(t => memberIds.includes(t.memberId));
+            const completed = deptTasks.filter(t => t.status === 'Completed').length;
+            return {
+                department: dept,
+                total: deptTasks.length,
+                completed: completed,
+                rate: deptTasks.length > 0 ? Math.round((completed / deptTasks.length) * 100) : 0
+            };
+        });
+        
+        // Sort by completion rate
+        deptData.sort((a, b) => b.rate - a.rate);
+        
+        const ctx = canvas.getContext('2d');
+        
+        charts.department = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: deptData.map(d => d.department),
+                datasets: [
+                    {
+                        label: 'Completed',
+                        data: deptData.map(d => d.completed),
+                        backgroundColor: CHART_COLORS.success,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Total',
+                        data: deptData.map(d => d.total - d.completed),
+                        backgroundColor: CHART_COLORS.secondary + '40',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+    };
+
+    /**
+     * Render monthly tasks trend line chart
+     */
+    const renderMonthlyChart = () => {
+        const canvas = document.getElementById('chartMonthly');
+        if (!canvas) return;
+        
+        // Destroy existing chart
+        if (charts.monthly) {
+            charts.monthly.destroy();
+        }
+        
+        // Get last 6 months
+        const months = [];
+        const today = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            months.push({
+                key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+                label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            });
+        }
+        
+        // Count tasks per month
+        const createdData = months.map(m => {
+            return tasks.filter(t => {
+                if (!t.createdAt && !t.deadline) return false;
+                const date = t.createdAt || t.deadline;
+                return date.startsWith(m.key);
+            }).length;
+        });
+        
+        const completedData = months.map(m => {
+            return tasks.filter(t => {
+                if (!t.completedOn) return false;
+                return t.completedOn.startsWith(m.key);
+            }).length;
+        });
+        
+        const ctx = canvas.getContext('2d');
+        
+        charts.monthly = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months.map(m => m.label),
+                datasets: [
+                    {
+                        label: 'Created',
+                        data: createdData,
+                        borderColor: CHART_COLORS.primary,
+                        backgroundColor: CHART_COLORS.primary + '20',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Completed',
+                        data: completedData,
+                        borderColor: CHART_COLORS.success,
+                        backgroundColor: CHART_COLORS.success + '20',
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+    };
+
+    // ============================================
+    // 📝 TASK MODAL
+    // ============================================
+
+    /**
+     * Open add task modal
+     */
+    const openAddModal = () => {
+        editingTaskId = null;
+        
+        // Reset form
+        $(SELECTORS.taskForm)[0]?.reset();
+        clearFormErrors();
+        
+        // Populate employee dropdown
+        populateEmployeeDropdown();
+        
+        // Set defaults
+        $(SELECTORS.taskModalTitle).text('Add New Task');
+        $(SELECTORS.taskStatusSelect).val('Pending');
+        $(SELECTORS.taskQualityInput).val('');
+        $(SELECTORS.btnDeleteTask).addClass('hidden');
+        $(SELECTORS.btnSaveTask).text('Add Task');
+        
+        // Set default deadline to 1 week from now
+        const defaultDeadline = new Date();
+        defaultDeadline.setDate(defaultDeadline.getDate() + 7);
+        $(SELECTORS.taskDeadlineInput).val(Utils.formatDate(defaultDeadline));
+        
+        // Show modal
+        showModal(SELECTORS.taskModal);
+        
+        // Focus first input
+        setTimeout(() => {
+            $(SELECTORS.taskEmployeeSelect).focus();
+        }, 100);
+    };
+
+    /**
+     * Open edit task modal
+     */
+    const openEditModal = (taskId) => {
+        const task = getTaskById(taskId);
+        
+        if (!task) {
+            Utils.showToast('Task not found', 'error');
+            return;
+        }
+        
+        editingTaskId = taskId;
+        
+        // Reset form
+        $(SELECTORS.taskForm)[0]?.reset();
+        clearFormErrors();
+        
+        // Populate employee dropdown
+        populateEmployeeDropdown();
+        
+        // Fill form with task data
+        $(SELECTORS.taskModalTitle).text('Edit Task');
+        $(SELECTORS.taskId).val(task.taskId);
+        $(SELECTORS.taskEmployeeSelect).val(task.memberId);
+        $(SELECTORS.taskTitleInput).val(task.title || '');
+        $(SELECTORS.taskDescriptionInput).val(task.description || task.notes || '');
+        $(SELECTORS.taskDeadlineInput).val(task.deadline || '');
+        $(SELECTORS.taskStatusSelect).val(task.status || 'Pending');
+        $(SELECTORS.taskQualityInput).val(task.qualityScore || task.score || '');
+        
+        // Show delete button
+        $(SELECTORS.btnDeleteTask).removeClass('hidden');
+        $(SELECTORS.btnSaveTask).text('Update Task');
+        
+        // Show modal
+        showModal(SELECTORS.taskModal);
+    };
+
+    /**
+     * Close task modal
+     */
+    const closeTaskModal = () => {
+        hideModal(SELECTORS.taskModal);
+        editingTaskId = null;
+    };
+
+    /**
+     * Populate employee dropdown
+     */
+    const populateEmployeeDropdown = () => {
+        let options = '<option value="">Select Employee</option>';
+        
+        members.sort((a, b) => a.name.localeCompare(b.name)).forEach(member => {
+            options += `<option value="${member.memberId}">
+                ${Utils.escapeHtml(member.name)} — ${Utils.escapeHtml(member.department || 'N/A')}
+            </option>`;
+        });
+        
+        $(SELECTORS.taskEmployeeSelect).html(options);
+    };
+
+    /**
+     * Save task (add or update)
+     */
+    const saveTask = async () => {
+        if (isSaving) return;
+        
+        // Validate form
+        if (!validateTaskForm()) return;
+        
+        // Collect form data
+        const taskData = {
+            memberId: $(SELECTORS.taskEmployeeSelect).val(),
+            title: $(SELECTORS.taskTitleInput).val().trim(),
+            description: $(SELECTORS.taskDescriptionInput).val().trim(),
+            notes: $(SELECTORS.taskDescriptionInput).val().trim(),
+            deadline: $(SELECTORS.taskDeadlineInput).val(),
+            status: $(SELECTORS.taskStatusSelect).val(),
+            score: $(SELECTORS.taskQualityInput).val() || 0,
+            qualityScore: $(SELECTORS.taskQualityInput).val() || 0
+        };
+        
+        // Add timestamps
+        const now = Utils.formatDate(new Date());
+        if (editingTaskId) {
+            taskData.taskId = editingTaskId;
+            taskData.updatedAt = now;
+            
+            // If completed, set completedOn
+            if (taskData.status === 'Completed') {
+                const originalTask = getTaskById(editingTaskId);
+                if (originalTask?.status !== 'Completed') {
+                    taskData.completedOn = now;
+                } else {
+                    taskData.completedOn = originalTask.completedOn || now;
+                }
+            }
+        } else {
+            taskData.createdAt = now;
+            taskData.updatedAt = now;
+            if (taskData.status === 'Completed') {
+                taskData.completedOn = now;
+            }
+        }
+        
+        try {
+            isSaving = true;
+            updateSaveButton(true);
+            
+            if (editingTaskId) {
+                await API.updateTask(editingTaskId, taskData);
+                Utils.showToast('Task updated successfully!', 'success');
+            } else {
+                await API.addTask(taskData);
+                Utils.showToast('Task added successfully!', 'success');
+            }
+            
+            closeTaskModal();
+            await loadTasks();
+            applyFilters();
+            renderCharts();
+            
+        } catch (error) {
+            CONFIG.logError('Failed to save task:', error);
+            Utils.showToast(error.message || 'Failed to save task', 'error');
+        } finally {
+            isSaving = false;
+            updateSaveButton(false);
+        }
+    };
+
+    /**
+     * Validate task form
+     */
+    const validateTaskForm = () => {
+        clearFormErrors();
+        let isValid = true;
+        
+        // Employee required
+        if (!$(SELECTORS.taskEmployeeSelect).val()) {
+            showFieldError(SELECTORS.taskEmployeeSelect, 'Please select an employee');
+            isValid = false;
+        }
+        
+        // Title required
+        const title = $(SELECTORS.taskTitleInput).val().trim();
+        if (!title) {
+            showFieldError(SELECTORS.taskTitleInput, 'Task title is required');
+            isValid = false;
+        } else if (title.length < 3) {
+            showFieldError(SELECTORS.taskTitleInput, 'Title must be at least 3 characters');
+            isValid = false;
+        }
+        
+        // Quality score range
+        const score = $(SELECTORS.taskQualityInput).val();
+        if (score && (score < 0 || score > 100)) {
+            showFieldError(SELECTORS.taskQualityInput, 'Score must be between 0 and 100');
+            isValid = false;
+        }
+        
+        return isValid;
+    };
+
+    /**
+     * Show field error
+     */
+    const showFieldError = (selector, message) => {
+        const $field = $(selector);
+        $field.addClass('border-red-500 focus:border-red-500 focus:ring-red-500');
+        
+        // Add error message
+        const errorHtml = `<p class="field-error text-xs text-red-600 mt-1">${Utils.escapeHtml(message)}</p>`;
+        $field.parent().append(errorHtml);
+    };
+
+    /**
+     * Clear all form errors
+     */
+    const clearFormErrors = () => {
+        $(SELECTORS.taskForm).find('input, select, textarea').removeClass('border-red-500 focus:border-red-500 focus:ring-red-500');
+        $(SELECTORS.taskForm).find('.field-error').remove();
+    };
+
+    /**
+     * Update save button state
+     */
+    const updateSaveButton = (loading) => {
+        const $btn = $(SELECTORS.btnSaveTask);
+        
+        if (loading) {
+            $btn.prop('disabled', true).html(`
+                <svg class="animate-spin h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Saving...
+            `);
+        } else {
+            $btn.prop('disabled', false).text(editingTaskId ? 'Update Task' : 'Add Task');
+        }
+    };
+
+    // ============================================
+    // 🗑️ DELETE TASK
+    // ============================================
+
+    /**
+     * Confirm and delete task
+     */
+    const confirmDeleteTask = async (taskId) => {
+        const task = getTaskById(taskId);
+        if (!task) return;
+        
+        const confirmed = await Utils.showConfirm(
+            `Are you sure you want to delete "${task.title}"?`,
+            'Delete Task'
+        );
+        
+        if (confirmed) {
+            await deleteTask(taskId);
+        }
+    };
+
+    /**
+     * Delete a task
+     */
+    const deleteTask = async (taskId) => {
+        try {
+            Utils.showLoading(SELECTORS.taskTableContainer, 'Deleting task...');
+            
+            await API.deleteTask(taskId);
+            
+            Utils.showToast('Task deleted successfully', 'success');
+            closeTaskModal();
+            await loadTasks();
+            applyFilters();
+            renderCharts();
+            
+        } catch (error) {
+            CONFIG.logError('Failed to delete task:', error);
+            Utils.showToast(error.message || 'Failed to delete task', 'error');
+        } finally {
+            Utils.hideLoading(SELECTORS.taskTableContainer);
+        }
+    };
+
+    // ============================================
+    // 🎨 RENDERING UTILITIES
+    // ============================================
+
+    /**
+     * Render status badge HTML
+     */
+    const renderStatusBadge = (status) => {
+        const config = TASK_STATUS[status] || TASK_STATUS['Pending'];
+        
+        return `
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${config.bgClass} ${config.textClass}">
+                ${Utils.escapeHtml(config.label)}
+            </span>
+        `;
+    };
+
+    /**
+     * Render quality score badge
+     */
+    const renderScoreBadge = (score) => {
+        if (!score || score === 0) {
+            return '<span class="text-gray-400 text-sm">—</span>';
+        }
+        
+        let colorClass = 'bg-gray-100 text-gray-800';
+        if (score >= 80) {
+            colorClass = 'bg-green-100 text-green-800';
+        } else if (score >= 60) {
+            colorClass = 'bg-blue-100 text-blue-800';
+        } else if (score >= 40) {
+            colorClass = 'bg-yellow-100 text-yellow-800';
+        } else {
+            colorClass = 'bg-red-100 text-red-800';
+        }
+        
+        return `
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${colorClass}">
+                ${Math.round(score)}%
+            </span>
+        `;
+    };
+
+    // ============================================
+    // 🔧 UTILITY FUNCTIONS
+    // ============================================
+
+    /**
+     * Get employee by ID
+     */
+    const getEmployeeById = (memberId) => {
+        return members.find(m => m.memberId === memberId) || null;
+    };
+
+    /**
+     * Get employee photo URL
+     */
+    const getEmployeePhoto = (memberId) => {
+        const member = getEmployeeById(memberId);
+        return member?.photoURL || Utils.getAvatarUrl(member?.name || 'Unknown');
+    };
+
+    /**
+     * Get task by ID
+     */
+    const getTaskById = (taskId) => {
+        return tasks.find(t => t.taskId === taskId) || null;
+    };
+
+    /**
+     * Format deadline for display
+     */
+    const formatDeadline = (deadline) => {
+        if (!deadline) return 'No deadline';
+        
+        const date = new Date(deadline);
+        if (isNaN(date.getTime())) return deadline;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        date.setHours(0, 0, 0, 0);
+        
+        const diffDays = Math.floor((date - today) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Tomorrow';
+        if (diffDays === -1) return 'Yesterday';
+        if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+        if (diffDays <= 7) return `In ${diffDays} days`;
+        
+        return Utils.formatDateDisplay(deadline);
+    };
+
+    /**
+     * Calculate task status based on deadline
+     */
+    const calculateStatus = (deadline, currentStatus) => {
+        if (currentStatus === 'Completed' || currentStatus === 'Cancelled') {
+            return currentStatus;
+        }
+        
+        if (!deadline) return currentStatus || 'Pending';
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const deadlineDate = new Date(deadline);
+        deadlineDate.setHours(0, 0, 0, 0);
+        
+        if (deadlineDate < today) {
+            return 'Overdue';
+        }
+        
+        return currentStatus || 'Pending';
+    };
+
+    /**
+     * Calculate quality score for a set of tasks
+     */
+    const calculateTaskScore = (tasksArray) => {
+        const completed = tasksArray.filter(t => t.status === 'Completed' && t.qualityScore > 0);
+        if (completed.length === 0) return 0;
+        
+        const total = completed.reduce((sum, t) => sum + t.qualityScore, 0);
+        return total / completed.length;
+    };
+
+    // ============================================
+    // 🎭 MODAL UTILITIES
+    // ============================================
+
+    /**
+     * Show modal with animation
+     */
+    const showModal = (selector) => {
+        const $modal = $(selector);
+        $modal.removeClass('hidden').addClass('flex');
+        
+        setTimeout(() => {
+            $modal.find('.modal-content').removeClass('scale-95 opacity-0');
+        }, 10);
+    };
+
+    /**
+     * Hide modal with animation
+     */
+    const hideModal = (selector) => {
+        const $modal = $(selector);
+        $modal.find('.modal-content').addClass('scale-95 opacity-0');
+        
+        setTimeout(() => {
+            $modal.removeClass('flex').addClass('hidden');
+        }, 200);
+    };
+
+    // ============================================
+    // ⏳ LOADING UTILITIES
+    // ============================================
+
+    /**
+     * Show page loading overlay
+     */
+    const showPageLoading = () => {
+        isLoading = true;
+        $(SELECTORS.loadingOverlay).removeClass('hidden');
+    };
+
+    /**
+     * Hide page loading overlay
+     */
+    const hidePageLoading = () => {
+        isLoading = false;
+        $(SELECTORS.loadingOverlay).addClass('hidden');
+    };
+
+    /**
+     * Show table loading state
+     */
+    const showTableLoading = () => {
+        $(SELECTORS.taskTableBody).html(`
+            <tr>
+                <td colspan="6" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="spinner mb-4"></div>
+                        <p class="text-gray-500">Loading tasks...</p>
+                    </div>
+                </td>
+            </tr>
+        `);
+    };
+
+    // ============================================
+    // 🎧 EVENT LISTENERS
+    // ============================================
+
+    /**
+     * Setup all event listeners
+     */
+    const setupEventListeners = () => {
+        // Add Task Button
+        $(SELECTORS.btnAddTask).on('click', openAddModal);
+        
+        // Refresh Button
+        $(SELECTORS.btnRefresh).on('click', async () => {
+            await loadTasks();
+            applyFilters();
+            renderCharts();
+            Utils.showToast('Tasks refreshed', 'info');
+        });
+        
+        // Filters
+        $(SELECTORS.filterDepartment).on('change', applyFilters);
+        $(SELECTORS.filterEmployee).on('change', applyFilters);
+        $(SELECTORS.filterStatus).on('change', applyFilters);
+        $(SELECTORS.searchInput).on('input', debounce(applyFilters, 300));
+        $(SELECTORS.btnClearFilters).on('click', clearFilters);
+        
+        // Pagination
+        $(SELECTORS.btnPrevPage).on('click', prevPage);
+        $(SELECTORS.btnNextPage).on('click', nextPage);
+        
+        // Task Modal
+        $(SELECTORS.btnCloseTaskModal).on('click', closeTaskModal);
+        $(SELECTORS.btnCancelTask).on('click', closeTaskModal);
+        $(SELECTORS.btnSaveTask).on('click', saveTask);
+        $(SELECTORS.btnDeleteTask).on('click', () => {
+            if (editingTaskId) {
+                confirmDeleteTask(editingTaskId);
+            }
+        });
+        
+        // Form submission
+        $(SELECTORS.taskForm).on('submit', function(e) {
+            e.preventDefault();
+            saveTask();
+        });
+        
+        // Modal backdrop click
+        $(SELECTORS.taskModal).on('click', function(e) {
+            if (e.target === this) {
+                closeTaskModal();
+            }
+        });
+        
+        // Keyboard shortcuts
+        $(document).on('keydown', function(e) {
+            // ESC to close modal
+            if (e.key === 'Escape' && !$(SELECTORS.taskModal).hasClass('hidden')) {
+                closeTaskModal();
+            }
+            
+            // Ctrl/Cmd + N to add new task
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                openAddModal();
+            }
+        });
+        
+        // Clear input errors on change
+        $(SELECTORS.taskForm).on('input change', 'input, select, textarea', function() {
+            $(this).removeClass('border-red-500 focus:border-red-500 focus:ring-red-500');
+            $(this).parent().find('.field-error').remove();
+        });
+    };
+
+    /**
+     * Debounce utility function
+     */
+    const debounce = (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+
+    // ============================================
+    // 📤 PUBLIC API
+    // ============================================
+
+    return {
+        init,
+        loadTasks,
+        
+        // Modal controls
+        openAddModal,
+        openEditModal,
+        closeTaskModal,
+        
+        // Actions
+        saveTask,
+        deleteTask,
+        
+        // Filters
+        applyFilters,
+        clearFilters,
+        
+        // Charts
+        renderCharts,
+        
+        // State getters
+        getTasks: () => [...tasks],
+        getFilteredTasks: () => [...filteredTasks],
+        getMembers: () => [...members],
+        
+        // Utilities
+        getTaskById,
+        getEmployeeById,
+        calculateStatus,
+        formatDeadline
+    };
 
 })();
+
+// ============================================
+// 🚀 DOCUMENT READY
+// ============================================
+
+$(document).ready(function() {
+    PerformancePage.init();
+});

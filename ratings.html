@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SquidX HRM - Employee Ratings Management">
+    <title>Ratings | SquidX HRM</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            200: '#C7D2FE',
+                            300: '#A5B4FC',
+                            400: '#818CF8',
+                            500: '#6366F1',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Modal animation */
+        .modal-content {
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Star rating display */
+        .star-filled {
+            color: #FBBF24;
+        }
+        .star-empty {
+            color: #D1D5DB;
+        }
+        
+        /* Score slider thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4F46E5;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4F46E5;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="bg-white border-b border-gray-200 fixed w-full top-0 z-30">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center">
+                    <button id="sidebarToggle" class="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 lg:hidden">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <a href="index.html" class="flex items-center ml-2 lg:ml-0">
+                        <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">S</span>
+                        </div>
+                        <span class="ml-2 text-xl font-semibold text-gray-900">SquidX <span class="text-primary-600">HRM</span></span>
+                    </a>
+                </div>
+                
+                <!-- Right Side -->
+                <div class="flex items-center gap-4">
+                    <!-- Refresh Button -->
+                    <button id="btnRefresh" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Refresh">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Current Date -->
+                    <div class="hidden sm:flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="navCurrentDate"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside id="sidebar" class="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+        <nav class="p-4 space-y-1">
+            <!-- Dashboard -->
+            <a href="index.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            
+            <!-- Members -->
+            <a href="members.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>Members</span>
+            </a>
+            
+            <!-- Attendance -->
+            <a href="attendance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span>Attendance</span>
+            </a>
+            
+            <!-- Performance -->
+            <a href="performance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>Performance</span>
+            </a>
+            
+            <!-- Ratings (Active) -->
+            <a href="ratings.html" class="flex items-center px-4 py-3 bg-primary-50 text-primary-700 rounded-lg font-medium">
+                <svg class="w-5 h-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                </svg>
+                <span>Ratings</span>
+            </a>
+            
+            <!-- Divider -->
+            <div class="border-t border-gray-200 my-4"></div>
+            
+            <!-- Settings -->
+            <a href="settings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+        
+        <!-- Sidebar Footer -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
+            <div class="flex items-center text-sm text-gray-500">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>SquidX HRM v2.0</span>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-10 hidden lg:hidden"></div>
+    
+    <!-- ============================================ -->
+    <!-- MAIN CONTENT -->
+    <!-- ============================================ -->
+    <main class="lg:ml-64 pt-16 min-h-screen">
+        <div class="p-4 sm:p-6 lg:p-8">
+            
+            <!-- ============================================ -->
+            <!-- LOADING OVERLAY -->
+            <!-- ============================================ -->
+            <div id="ratingsLoadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-40 flex items-center justify-center hidden">
+                <div class="text-center">
+                    <div class="spinner mx-auto mb-4"></div>
+                    <p class="text-gray-600 font-medium">Loading ratings...</p>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- PAGE HEADER -->
+            <!-- ============================================ -->
+            <div class="mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Ratings Management</h1>
+                        <p class="text-gray-500 mt-1">Track & evaluate employee rating metrics</p>
+                    </div>
+                    
+                    <!-- Month Navigation -->
+                    <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+                        <button id="btnPrevMonth" class="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Previous Month">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span id="selectedMonthDisplay" class="font-medium text-gray-900 min-w-[140px] text-center">January 2024</span>
+                        </div>
+                        
+                        <button id="btnNextMonth" class="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Next Month">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="border-l border-gray-200 pl-3 ml-1">
+                            <button id="btnGoToCurrentMonth" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                                This Month
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- SUMMARY CARDS -->
+            <!-- ============================================ -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <!-- Employees Rated -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">Employees Rated</p>
+                            <p id="summaryRatedCount" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Average Rating -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">Avg Rating</p>
+                            <div class="flex items-baseline gap-1">
+                                <p id="summaryAverageRating" class="text-2xl font-bold text-amber-500">0.0</p>
+                                <span class="text-sm text-gray-400">/5</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Highest Score -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">Highest Score</p>
+                            <div class="flex items-baseline gap-1">
+                                <p id="summaryHighestScore" class="text-2xl font-bold text-green-600">0.0</p>
+                                <span class="text-sm text-gray-400">/5</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lowest Score -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">Lowest Score</p>
+                            <div class="flex items-baseline gap-1">
+                                <p id="summaryLowestScore" class="text-2xl font-bold text-red-600">0.0</p>
+                                <span class="text-sm text-gray-400">/5</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- FILTERS TOOLBAR -->
+            <!-- ============================================ -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <!-- Left: Search & Filters -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Search -->
+                        <div class="relative flex-1 min-w-[200px]">
+                            <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="text" 
+                                   id="searchInput" 
+                                   placeholder="Search employee..." 
+                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        
+                        <!-- Department Filter -->
+                        <select id="filterDepartment" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-w-[150px]">
+                            <option value="all">All Departments</option>
+                        </select>
+                        
+                        <!-- Score Range Filter -->
+                        <select id="filterScoreRange" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-w-[140px]">
+                            <option value="all">All Scores</option>
+                            <option value="excellent">Excellent (4.5-5)</option>
+                            <option value="good">Good (3.5-4.5)</option>
+                            <option value="average">Average (2.5-3.5)</option>
+                            <option value="below">Below Avg (1.5-2.5)</option>
+                            <option value="poor">Poor (0-1.5)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Right: Add Rating Button -->
+                    <button id="btnAddRating" class="inline-flex items-center px-4 py-2.5 bg-primary-600 rounded-lg text-sm font-medium text-white hover:bg-primary-700 transition-colors shadow-sm">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Rating
+                    </button>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- MAIN CONTENT GRID -->
+            <!-- ============================================ -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                
+                <!-- ============================================ -->
+                <!-- RATINGS TABLE (Takes 2 columns on XL) -->
+                <!-- ============================================ -->
+                <div class="xl:col-span-2">
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <!-- Table Header -->
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Employee Ratings</h2>
+                            <p id="ratingsCount" class="text-sm text-gray-500 mt-1">Showing 0 ratings</p>
+                        </div>
+                        
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <table id="ratingsTable" class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Employee
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Quality
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Punctuality
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Reliability
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Deadlines
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Avg
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ratingsTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Loading State -->
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-12 text-center">
+                                            <div class="flex flex-col items-center">
+                                                <div class="spinner mb-4"></div>
+                                                <p class="text-gray-500">Loading ratings...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div id="ratingsEmptyState" class="hidden px-6 py-12 text-center">
+                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No ratings found</h3>
+                            <p class="text-gray-500 mb-4">No ratings recorded for this period.</p>
+                            <button id="btnAddRatingEmpty" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
+                                Add First Rating
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ============================================ -->
+                <!-- CHARTS SECTION (Right Column) -->
+                <!-- ============================================ -->
+                <div class="space-y-6">
+                    <!-- Score Distribution Chart -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Score Distribution</h3>
+                            <div class="p-2 bg-primary-50 rounded-lg">
+                                <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="chartDistribution"></canvas>
+                        </div>
+                        <div id="distributionLegend" class="mt-4 grid grid-cols-2 gap-2 text-xs">
+                            <!-- Legend items will be injected by JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Department Averages Chart -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Department Averages</h3>
+                            <div class="p-2 bg-green-50 rounded-lg">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="chartDepartmentAvg"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Top Performers Card -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Top Performers</h3>
+                            <div class="p-2 bg-amber-50 rounded-lg">
+                                <svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="topPerformersList" class="space-y-3">
+                            <!-- Top performers will be injected by JS -->
+                            <div class="flex items-center justify-center py-6 text-gray-400">
+                                <p class="text-sm">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+    
+    <!-- ============================================ -->
+    <!-- ADD/EDIT RATING MODAL -->
+    <!-- ============================================ -->
+    <div id="ratingModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4 overflow-y-auto">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8 mx-auto transform scale-95 opacity-0 transition-all duration-200">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                        </svg>
+                    </div>
+                    <h2 id="ratingModalTitle" class="text-lg font-semibold text-gray-900">Add Rating</h2>
+                </div>
+                <button id="btnCloseRatingModal" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <form id="ratingForm" class="p-5 space-y-5">
+                <!-- Hidden Rating ID -->
+                <input type="hidden" id="ratingId">
+                
+                <!-- Employee Select -->
+                <div class="form-group">
+                    <label for="ratingEmployeeSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                        Employee <span class="text-red-500">*</span>
+                    </label>
+                    <select id="ratingEmployeeSelect" 
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                            required>
+                        <option value="">Select an employee...</option>
+                    </select>
+                </div>
+                
+                <!-- Rating Date -->
+                <div class="form-group">
+                    <label for="ratingDate" class="block text-sm font-medium text-gray-700 mb-2">
+                        Rating Date
+                    </label>
+                    <input type="date" 
+                           id="ratingDate" 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                
+                <!-- Rating Sliders -->
+                <div class="space-y-4">
+                    <!-- Quality -->
+                    <div class="rating-slider-group">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="ratingQuality" class="text-sm font-medium text-gray-700">Quality of Work</label>
+                            <span id="ratingQualityValue" class="text-sm font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded">3</span>
+                        </div>
+                        <input type="range" 
+                               id="ratingQuality" 
+                               min="1" 
+                               max="5" 
+                               value="3"
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600">
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>Poor</span>
+                            <span>Average</span>
+                            <span>Excellent</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Punctuality -->
+                    <div class="rating-slider-group">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="ratingPunctuality" class="text-sm font-medium text-gray-700">Punctuality</label>
+                            <span id="ratingPunctualityValue" class="text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">3</span>
+                        </div>
+                        <input type="range" 
+                               id="ratingPunctuality" 
+                               min="1" 
+                               max="5" 
+                               value="3"
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600">
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>Poor</span>
+                            <span>Average</span>
+                            <span>Excellent</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Reliability -->
+                    <div class="rating-slider-group">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="ratingReliability" class="text-sm font-medium text-gray-700">Reliability</label>
+                            <span id="ratingReliabilityValue" class="text-sm font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">3</span>
+                        </div>
+                        <input type="range" 
+                               id="ratingReliability" 
+                               min="1" 
+                               max="5" 
+                               value="3"
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600">
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>Poor</span>
+                            <span>Average</span>
+                            <span>Excellent</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Deadlines -->
+                    <div class="rating-slider-group">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="ratingDeadlines" class="text-sm font-medium text-gray-700">Meeting Deadlines</label>
+                            <span id="ratingDeadlinesValue" class="text-sm font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">3</span>
+                        </div>
+                        <input type="range" 
+                               id="ratingDeadlines" 
+                               min="1" 
+                               max="5" 
+                               value="3"
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>Poor</span>
+                            <span>Average</span>
+                            <span>Excellent</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Average Score Preview -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">Overall Score</span>
+                        <div class="flex items-center gap-2">
+                            <div id="ratingStarsPreview" class="flex">
+                                <!-- Stars will be rendered by JS -->
+                            </div>
+                            <span id="ratingAveragePreview" class="text-lg font-bold text-gray-900">3.0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Comments -->
+                <div class="form-group">
+                    <label for="ratingComments" class="block text-sm font-medium text-gray-700 mb-2">
+                        Comments <span class="text-gray-400">(optional)</span>
+                    </label>
+                    <textarea id="ratingComments" 
+                              rows="3"
+                              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                              placeholder="Add any notes about this rating..."></textarea>
+                </div>
+            </form>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-between gap-3 p-5 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+                <button id="btnDeleteRating" type="button" class="hidden px-4 py-2.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete
+                </button>
+                <div class="flex gap-3 ml-auto">
+                    <button id="btnCancelRating" type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="btnSaveRating" type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Save Rating
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- DELETE CONFIRMATION MODAL -->
+    <!-- ============================================ -->
+    <div id="deleteRatingModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 opacity-0 transition-all duration-200">
+            <!-- Modal Content -->
+            <div class="p-5 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Delete Rating?</h3>
+                <p class="text-gray-600 mb-6">
+                    Are you sure you want to delete this rating for <strong id="deleteRatingName" class="text-gray-900"></strong>? 
+                    This action cannot be undone.
+                </p>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center gap-3 p-5 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+                <button id="btnCancelDeleteRating" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button id="btnConfirmDeleteRating" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors inline-flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete Rating
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- TOAST CONTAINER -->
+    <!-- ============================================ -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[60] space-y-2">
+        <!-- Toast notifications will be injected here by JS -->
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================ -->
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Configuration -->
+    <script src="config/sheet-config.js"></script>
+    
+    <!-- API Module -->
+    <script src="assets/js/api.js"></script>
+    
+    <!-- Utilities -->
+    <script src="assets/js/utils.js"></script>
+    
+    <!-- Page Controller -->
+    <script src="assets/js/ratings.js"></script>
+    
+    <!-- Sidebar Toggle Script -->
+    <script>
+        // Sidebar toggle for mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        });
+        
+        document.getElementById('sidebarOverlay')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            this.classList.add('hidden');
+            sidebar.classList.add('-translate-x-full');
+        });
+        
+        // Set current date in navbar
+        document.getElementById('navCurrentDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    </script>
+    
+</body>
+</html>

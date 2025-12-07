@@ -3,657 +3,472 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="HR Management System - Performance Tracking">
-    <meta name="theme-color" content="#1e40af">
-    
-    <title>Performance - HR Management System</title>
+    <meta name="description" content="SquidX HRM - Team Performance Management">
+    <title>Performance | SquidX HRM</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
     
-    <!-- Preconnect -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- TailwindCSS -->
+    <!-- TailwindCSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Tailwind Config -->
+    <!-- Custom Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
                     colors: {
                         primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
-                            950: '#172554',
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            200: '#C7D2FE',
+                            300: '#A5B4FC',
+                            400: '#818CF8',
+                            500: '#6366F1',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81'
                         }
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-out',
-                        'slide-up': 'slideUp 0.3s ease-out',
-                        'slide-down': 'slideDown 0.3s ease-out',
-                        'scale-in': 'scaleIn 0.2s ease-out',
-                        'bounce-in': 'bounceIn 0.5s ease-out',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        slideUp: {
-                            '0%': { transform: 'translateY(10px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        },
-                        slideDown: {
-                            '0%': { transform: 'translateY(-10px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        },
-                        scaleIn: {
-                            '0%': { transform: 'scale(0.95)', opacity: '0' },
-                            '100%': { transform: 'scale(1)', opacity: '1' },
-                        },
-                        bounceIn: {
-                            '0%': { transform: 'scale(0.9)', opacity: '0' },
-                            '50%': { transform: 'scale(1.02)' },
-                            '100%': { transform: 'scale(1)', opacity: '1' },
-                        },
                     }
                 }
             }
         }
     </script>
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/custom.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
     
-    <!-- Page Styles -->
     <style>
-        /* Sidebar */
-        .sidebar {
-            transition: transform 0.3s ease, width 0.3s ease;
-        }
-        
-        .sidebar.collapsed {
-            transform: translateX(-100%);
-        }
-        
-        @media (min-width: 1024px) {
-            .sidebar.collapsed {
-                transform: translateX(0);
-                width: 80px;
-            }
-            
-            .sidebar.collapsed .sidebar-text {
-                display: none;
-            }
-            
-            .sidebar.collapsed .sidebar-link {
-                justify-content: center;
-            }
-        }
-        
-        /* Main content offset */
-        .main-content {
-            transition: margin-left 0.3s ease;
-        }
-        
-        @media (min-width: 1024px) {
-            .main-content {
-                margin-left: 256px;
-            }
-            
-            .sidebar.collapsed + .main-content {
-                margin-left: 80px;
-            }
-        }
-        
-        /* Task card styles */
-        .task-card {
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        
-        .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-        
-        .task-card.status-pending {
-            border-left-color: #f59e0b;
-        }
-        
-        .task-card.status-completed {
-            border-left-color: #10b981;
-        }
-        
-        .task-card.status-overdue {
-            border-left-color: #ef4444;
-        }
-        
-        .task-card.status-in-progress {
-            border-left-color: #3b82f6;
-        }
-        
-        /* Priority badges */
-        .priority-high {
-            background-color: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-        
-        .priority-medium {
-            background-color: #fffbeb;
-            color: #d97706;
-            border: 1px solid #fde68a;
-        }
-        
-        .priority-low {
-            background-color: #f0fdf4;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-        }
-        
-        /* Progress ring */
-        .progress-ring {
-            transform: rotate(-90deg);
-        }
-        
-        .progress-ring circle {
-            transition: stroke-dashoffset 0.5s ease;
-        }
-        
-        /* View toggle */
-        .view-toggle-btn.active {
-            background-color: #2563eb;
-            color: white;
-        }
-        
-        /* Kanban columns */
-        .kanban-column {
-            min-height: 400px;
-        }
-        
-        .kanban-header-pending {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-color: #f59e0b;
-        }
-        
-        .kanban-header-in-progress {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-            border-color: #3b82f6;
-        }
-        
-        .kanban-header-completed {
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            border-color: #10b981;
-        }
-        
-        .kanban-header-overdue {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            border-color: #ef4444;
-        }
-        
-        /* Score indicator */
-        .score-badge {
-            transition: all 0.2s ease;
-        }
-        
-        .score-badge.score-high {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
-        
-        .score-badge.score-medium {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        }
-        
-        .score-badge.score-low {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        body {
+            font-family: 'Inter', sans-serif;
         }
         
         /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
+        ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
-        
-        .custom-scrollbar::-webkit-scrollbar-track {
+        ::-webkit-scrollbar-track {
             background: #f1f5f9;
-            border-radius: 3px;
         }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 3px;
         }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
         
-        /* Checkbox animation */
-        .task-checkbox {
-            transition: all 0.2s ease;
+        /* Modal animation */
+        .modal-content {
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
         }
         
-        .task-checkbox:checked {
-            animation: checkPop 0.3s ease;
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
         }
         
-        @keyframes checkPop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+        .spinner-sm {
+            width: 20px;
+            height: 20px;
+            border-width: 2px;
         }
         
-        /* Loading skeleton */
-        .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: skeleton-loading 1.5s infinite;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
-        @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        /* Chart container height */
+        .chart-container {
+            position: relative;
+            height: 280px;
         }
         
-        /* Due date urgency */
-        .due-urgent {
-            color: #dc2626;
-            font-weight: 600;
-        }
-        
-        .due-soon {
-            color: #d97706;
-        }
-        
-        .due-normal {
-            color: #6b7280;
-        }
-        
-        /* Print styles */
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            
-            .main-content {
-                margin-left: 0 !important;
-            }
-            
-            body {
-                background: white;
-            }
+        /* Table row cursor */
+        #taskTableBody tr[data-task-id] {
+            cursor: pointer;
         }
     </style>
 </head>
 
-<body class="bg-gray-50 font-sans antialiased">
+<body class="bg-gray-50 min-h-screen">
     
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-white">
-        <div class="text-center">
-            <div class="inline-flex items-center justify-center w-16 h-16 mb-4">
-                <svg class="animate-spin h-12 w-12 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </div>
+    <!-- ============================================ -->
+    <!-- LOADING OVERLAY -->
+    <!-- ============================================ -->
+    <div id="performanceLoadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-40 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+            <div class="spinner mb-4"></div>
             <p class="text-gray-600 font-medium">Loading performance data...</p>
         </div>
     </div>
     
-    <!-- Toast Container -->
-    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none"></div>
-    
-    <!-- Sidebar Container -->
-    <div id="sidebar-container"></div>
-    
-    <!-- Main Content Wrapper -->
-    <div class="main-content min-h-screen">
-        
-        <!-- Navbar Container -->
-        <div id="navbar-container"></div>
-        
-        <!-- Page Content -->
-        <main class="p-4 lg:p-6 pt-20 lg:pt-24">
-            
-            <!-- Page Header -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                <div>
-                    <h1 id="page-title" class="text-2xl lg:text-3xl font-bold text-gray-900">Performance</h1>
-                    <p id="page-subtitle" class="text-gray-500 mt-1">Track tasks and measure productivity</p>
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="bg-white border-b border-gray-200 fixed w-full top-0 z-30">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center">
+                    <button id="sidebarToggle" class="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 lg:hidden">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <a href="index.html" class="flex items-center ml-2 lg:ml-0">
+                        <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">S</span>
+                        </div>
+                        <span class="ml-2 text-xl font-semibold text-gray-900">SquidX <span class="text-primary-600">HRM</span></span>
+                    </a>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 no-print">
-                    <!-- View Toggle -->
-                    <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
-                        <button class="view-toggle-btn active px-3 py-1.5 rounded-md text-sm font-medium transition-colors" data-view="table">
-                            <i class="fas fa-list mr-1"></i> List
-                        </button>
-                        <button class="view-toggle-btn px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 transition-colors" data-view="grid">
-                            <i class="fas fa-th-large mr-1"></i> Grid
-                        </button>
-                        <button class="view-toggle-btn px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 transition-colors" data-view="kanban">
-                            <i class="fas fa-columns mr-1"></i> Kanban
-                        </button>
+                
+                <!-- Right Side -->
+                <div class="flex items-center gap-4">
+                    <!-- Refresh Button -->
+                    <button id="btnRefresh" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Refresh Data">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Current Date -->
+                    <div class="hidden sm:flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="navCurrentDate"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside id="sidebar" class="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+        <nav class="p-4 space-y-1">
+            <!-- Dashboard -->
+            <a href="index.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            
+            <!-- Members -->
+            <a href="members.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>Members</span>
+            </a>
+            
+            <!-- Attendance -->
+            <a href="attendance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span>Attendance</span>
+            </a>
+            
+            <!-- Performance (Active) -->
+            <a href="performance.html" class="flex items-center px-4 py-3 bg-primary-50 text-primary-700 rounded-lg font-medium">
+                <svg class="w-5 h-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>Performance</span>
+            </a>
+            
+            <!-- Ratings -->
+            <a href="ratings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                </svg>
+                <span>Ratings</span>
+            </a>
+            
+            <!-- Divider -->
+            <div class="border-t border-gray-200 my-4"></div>
+            
+            <!-- Settings -->
+            <a href="settings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </aside>
+    
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-10 hidden lg:hidden"></div>
+    
+    <!-- ============================================ -->
+    <!-- MAIN CONTENT -->
+    <!-- ============================================ -->
+    <main id="performancePageContainer" class="lg:ml-64 pt-16 min-h-screen">
+        <div class="p-4 sm:p-6 lg:p-8">
+            
+            <!-- ============================================ -->
+            <!-- PAGE HEADER -->
+            <!-- ============================================ -->
+            <div class="mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Team Performance</h1>
+                        <p class="mt-1 text-gray-500 text-sm">Track progress, completed work, and team productivity.</p>
                     </div>
                     
-                    <button id="refresh-btn" class="p-2.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all" title="Refresh">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    
-                    <button id="export-btn" class="hidden md:flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all">
-                        <i class="fas fa-download"></i>
-                        <span>Export</span>
-                    </button>
-                    
-                    <!-- Add Task Button (Admin Only) -->
-                    <button id="add-task-btn" class="admin-only hidden items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
-                        <i class="fas fa-plus"></i>
-                        <span class="hidden sm:inline">Assign Task</span>
+                    <!-- Add Task Button -->
+                    <button id="btnAddTask" class="inline-flex items-center px-4 py-2.5 bg-primary-600 rounded-lg text-sm font-medium text-white hover:bg-primary-700 transition-colors shadow-sm">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Task
                     </button>
                 </div>
             </div>
             
-            <!-- Statistics Cards -->
+            <!-- ============================================ -->
+            <!-- SUMMARY CARDS -->
+            <!-- ============================================ -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-                
                 <!-- Total Tasks -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
-                            <i class="fas fa-tasks text-primary-600"></i>
-                        </div>
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <p id="stat-total" class="text-xl font-bold text-gray-900">0</p>
-                            <p class="text-xs text-gray-500">Total Tasks</p>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Tasks</p>
+                            <p id="summaryTotalTasks" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Completed -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                            <i class="fas fa-check-circle text-green-600"></i>
-                        </div>
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <p id="stat-completed" class="text-xl font-bold text-gray-900">0</p>
-                            <p class="text-xs text-gray-500">Completed</p>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Completed</p>
+                            <p id="summaryCompleted" class="text-2xl font-bold text-green-600">0</p>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- In Progress -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                            <i class="fas fa-spinner text-blue-600"></i>
-                        </div>
-                        <div>
-                            <p id="stat-in-progress" class="text-xl font-bold text-gray-900">0</p>
-                            <p class="text-xs text-gray-500">In Progress</p>
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Pending -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-                            <i class="fas fa-clock text-yellow-600"></i>
-                        </div>
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <p id="stat-pending" class="text-xl font-bold text-gray-900">0</p>
-                            <p class="text-xs text-gray-500">Pending</p>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Pending</p>
+                            <p id="summaryPending" class="text-2xl font-bold text-yellow-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- In Progress -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">In Progress</p>
+                            <p id="summaryInProgress" class="text-2xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Overdue -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                            <i class="fas fa-exclamation-triangle text-red-600"></i>
-                        </div>
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <p id="stat-overdue" class="text-xl font-bold text-gray-900">0</p>
-                            <p class="text-xs text-gray-500">Overdue</p>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Overdue</p>
+                            <p id="summaryOverdue" class="text-2xl font-bold text-red-600">0</p>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- Completion Rate -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                            <i class="fas fa-percentage text-purple-600"></i>
-                        </div>
-                        <div>
-                            <p id="stat-completion-rate" class="text-xl font-bold text-gray-900">0%</p>
-                            <p class="text-xs text-gray-500">Completion</p>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-            
-            <!-- Progress Bars Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                
-                <!-- Completion Rate Progress -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-gray-900">Completion Rate</h3>
-                        <span id="completion-rate-value" class="text-lg font-bold text-primary-600">0%</span>
-                    </div>
-                    <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div id="completion-rate-bar" class="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-700" style="width: 0%"></div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Tasks completed out of total assigned</p>
-                </div>
-                
-                <!-- On-Time Rate Progress -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-gray-900">On-Time Completion</h3>
-                        <span id="ontime-rate-value" class="text-lg font-bold text-green-600">0%</span>
-                    </div>
-                    <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div id="ontime-rate-bar" class="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-700" style="width: 0%"></div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Tasks completed before or on deadline</p>
-                </div>
-                
-            </div>
-            
-            <!-- Charts Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                
-                <!-- Task Distribution Chart -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-900">Task Distribution</h3>
-                    </div>
-                    <div class="h-64 flex items-center justify-center">
-                        <canvas id="distribution-chart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Weekly Trend Chart -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-900">Weekly Trend</h3>
-                        <select id="trend-period" class="text-sm border-0 bg-gray-100 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500">
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                        </select>
-                    </div>
-                    <div class="h-64 flex items-center justify-center">
-                        <canvas id="trend-chart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Score Distribution Chart (Admin) / Performance Ring (Employee) -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-900">Performance Score</h3>
-                    </div>
-                    <div class="h-64 flex items-center justify-center">
-                        <div id="performance-ring-container" class="relative">
-                            <svg class="progress-ring w-40 h-40">
-                                <circle cx="80" cy="80" r="65" stroke="#e5e7eb" stroke-width="12" fill="none"/>
-                                <circle id="performance-ring" cx="80" cy="80" r="65" stroke="#3b82f6" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="408.4" stroke-dashoffset="408.4"/>
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                             </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span id="avg-score-display" class="text-3xl font-bold text-gray-900">0</span>
-                                <span class="text-sm text-gray-500">Avg Score</span>
-                            </div>
                         </div>
                     </div>
                 </div>
                 
-            </div>
-            
-            <!-- Filters Section -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6 no-print">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    
-                    <!-- Status Filter -->
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                        <select id="status-filter" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                            <option value="">All Status</option>
-                            <option value="Pending">Pending</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Overdue">Overdue</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Employee Filter (Admin Only) -->
-                    <div class="admin-only hidden">
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Employee</label>
-                        <select id="employee-filter" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                            <option value="">All Employees</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Department Filter (Admin Only) -->
-                    <div class="admin-only hidden">
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Department</label>
-                        <select id="department-filter" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                            <option value="">All Departments</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Date Range -->
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Due Date From</label>
-                        <input type="date" id="date-from" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Due Date To</label>
-                        <input type="date" id="date-to" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                    </div>
-                    
-                    <!-- Search -->
-                    <div class="sm:col-span-2 lg:col-span-1">
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Search</label>
-                        <div class="relative">
-                            <input type="text" id="search-input" placeholder="Search tasks..." class="w-full px-3 py-2 pl-9 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                <!-- Avg Score -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Avg. Score</p>
+                            <p id="summaryAvgScore" class="text-2xl font-bold text-primary-600">0.0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                            </svg>
                         </div>
                     </div>
-                    
-                </div>
-                
-                <!-- Filter Actions -->
-                <div class="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
-                    <button id="clear-filters-btn" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
-                        <i class="fas fa-times mr-1"></i> Clear
-                    </button>
-                    <button id="apply-filters-btn" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-                        <i class="fas fa-filter mr-1"></i> Apply Filters
-                    </button>
                 </div>
             </div>
             
-            <!-- List View (Default) -->
-            <div id="table-view" class="bg-white rounded-xl shadow-sm border border-gray-100">
-                
-                <!-- Table Header -->
-                <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                        <h3 class="font-semibold text-gray-900">Tasks</h3>
-                        <p id="tasks-count" class="text-sm text-gray-500">Showing 0 tasks</p>
+            <!-- ============================================ -->
+            <!-- CHARTS SECTION -->
+            <!-- ============================================ -->
+            <div id="chartsContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Task Completion Chart -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-gray-900">Task Completion</h3>
+                        <span class="text-xs text-gray-500">All time</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-sm text-gray-500">Show:</label>
-                        <select id="per-page-select" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option value="10">10</option>
-                            <option value="20" selected>20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
+                    <div class="chart-container">
+                        <canvas id="chartCompletion"></canvas>
                     </div>
                 </div>
                 
+                <!-- Department Productivity Chart -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-gray-900">Department Productivity</h3>
+                        <span class="text-xs text-gray-500">By completion</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartDepartment"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Monthly Performance Chart -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-gray-900">Monthly Trend</h3>
+                        <span class="text-xs text-gray-500">Last 6 months</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartMonthly"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- FILTERS SECTION -->
+            <!-- ============================================ -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <!-- Left: Filters -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Department Filter -->
+                        <div>
+                            <select id="filterDepartment" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-w-[160px]">
+                                <option value="all">All Departments</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Employee Filter -->
+                        <div>
+                            <select id="filterEmployee" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-w-[180px]">
+                                <option value="all">All Employees</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Status Filter -->
+                        <div>
+                            <select id="filterStatus" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-w-[140px]">
+                                <option value="all">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Overdue">Overdue</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Clear Filters -->
+                        <button id="btnClearFilters" class="px-3 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Right: Search -->
+                    <div class="relative">
+                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" 
+                               id="searchInput" 
+                               placeholder="Search tasks or employees..." 
+                               class="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-64">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- TASK TABLE -->
+            <!-- ============================================ -->
+            <div id="taskTableContainer" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <!-- Table -->
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full">
-                        <thead class="bg-gray-50 border-b border-gray-100">
+                <div class="overflow-x-auto">
+                    <table id="taskTable" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">#</th>
-                                <!-- Employee Column (Admin Only) -->
-                                <th class="admin-only hidden px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sortable-header" data-column="employeeName">
-                                    Employee <i class="fas fa-sort text-gray-300 ml-1"></i>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    Employee
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sortable-header" data-column="Task">
-                                    Task <i class="fas fa-sort text-gray-300 ml-1"></i>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    Task
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sortable-header" data-column="DueDate">
-                                    Due Date <i class="fas fa-sort text-gray-300 ml-1"></i>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    Deadline
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     Score
                                 </th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody id="tasks-table-body" class="divide-y divide-gray-100">
+                        <tbody id="taskTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Loading state -->
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                                    <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
-                                    <p>Loading tasks...</p>
+                                <td colspan="6" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="spinner mb-4"></div>
+                                        <p class="text-gray-500">Loading tasks...</p>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -661,423 +476,209 @@
                 </div>
                 
                 <!-- Pagination -->
-                <div class="p-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <p id="pagination-info" class="text-sm text-gray-500">Showing 0 of 0 tasks</p>
-                    <div id="pagination-container" class="flex items-center gap-1"></div>
-                </div>
-                
-            </div>
-            
-            <!-- Grid View -->
-            <div id="grid-view" class="hidden">
-                <div id="tasks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <!-- Task cards will be inserted here -->
-                </div>
-                
-                <!-- Grid Pagination -->
-                <div class="mt-6 flex justify-center">
-                    <div id="grid-pagination" class="flex items-center gap-1"></div>
-                </div>
-            </div>
-            
-            <!-- Kanban View -->
-            <div id="kanban-view" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    
-                    <!-- Pending Column -->
-                    <div class="kanban-column bg-gray-50 rounded-xl p-4">
-                        <div class="kanban-header-pending rounded-lg p-3 mb-4 border-l-4">
-                            <div class="flex items-center justify-between">
-                                <h4 class="font-semibold text-gray-800">
-                                    <i class="fas fa-clock mr-2"></i>Pending
-                                </h4>
-                                <span id="kanban-pending-count" class="px-2 py-0.5 bg-white rounded-full text-sm font-medium">0</span>
-                            </div>
-                        </div>
-                        <div id="kanban-pending" class="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            <!-- Pending tasks -->
-                        </div>
+                <div id="paginationContainer" class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <p id="paginationInfo" class="text-sm text-gray-600">Showing 0 - 0 of 0 tasks</p>
+                    <div class="flex items-center gap-2">
+                        <button id="btnPrevPage" class="px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <button id="btnNextPage" class="px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
                     </div>
-                    
-                    <!-- In Progress Column -->
-                    <div class="kanban-column bg-gray-50 rounded-xl p-4">
-                        <div class="kanban-header-in-progress rounded-lg p-3 mb-4 border-l-4">
-                            <div class="flex items-center justify-between">
-                                <h4 class="font-semibold text-gray-800">
-                                    <i class="fas fa-spinner mr-2"></i>In Progress
-                                </h4>
-                                <span id="kanban-in-progress-count" class="px-2 py-0.5 bg-white rounded-full text-sm font-medium">0</span>
-                            </div>
-                        </div>
-                        <div id="kanban-in-progress" class="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            <!-- In progress tasks -->
-                        </div>
-                    </div>
-                    
-                    <!-- Completed Column -->
-                    <div class="kanban-column bg-gray-50 rounded-xl p-4">
-                        <div class="kanban-header-completed rounded-lg p-3 mb-4 border-l-4">
-                            <div class="flex items-center justify-between">
-                                <h4 class="font-semibold text-gray-800">
-                                    <i class="fas fa-check-circle mr-2"></i>Completed
-                                </h4>
-                                <span id="kanban-completed-count" class="px-2 py-0.5 bg-white rounded-full text-sm font-medium">0</span>
-                            </div>
-                        </div>
-                        <div id="kanban-completed" class="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            <!-- Completed tasks -->
-                        </div>
-                    </div>
-                    
-                    <!-- Overdue Column -->
-                    <div class="kanban-column bg-gray-50 rounded-xl p-4">
-                        <div class="kanban-header-overdue rounded-lg p-3 mb-4 border-l-4">
-                            <div class="flex items-center justify-between">
-                                <h4 class="font-semibold text-gray-800">
-                                    <i class="fas fa-exclamation-triangle mr-2"></i>Overdue
-                                </h4>
-                                <span id="kanban-overdue-count" class="px-2 py-0.5 bg-white rounded-full text-sm font-medium">0</span>
-                            </div>
-                        </div>
-                        <div id="kanban-overdue" class="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            <!-- Overdue tasks -->
-                        </div>
-                    </div>
-                    
                 </div>
             </div>
             
-            <!-- Empty State -->
-            <div id="empty-state" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-                <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-tasks text-3xl text-gray-400"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">No Tasks Found</h3>
-                <p class="text-gray-500 mb-6">There are no tasks matching your criteria.</p>
-                <button id="empty-add-task-btn" class="admin-only hidden px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                    <i class="fas fa-plus mr-2"></i>Assign New Task
+        </div>
+    </main>
+    
+    <!-- ============================================ -->
+    <!-- TASK MODAL -->
+    <!-- ============================================ -->
+    <div id="taskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-lg transform scale-95 opacity-0 transition-all duration-200">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 border-b border-gray-200">
+                <h2 id="taskModalTitle" class="text-lg font-semibold text-gray-900">Add New Task</h2>
+                <button id="btnCloseTaskModal" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
                 </button>
             </div>
             
-        </main>
-        
-        <!-- Footer Container -->
-        <div id="footer-container"></div>
-        
-    </div>
-    
-    <!-- Add/Edit Task Modal -->
-    <div id="task-modal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm modal-backdrop"></div>
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+            <!-- Modal Body -->
+            <form id="taskForm" class="p-5 space-y-5">
+                <!-- Hidden Task ID -->
+                <input type="hidden" id="taskId">
                 
-                <!-- Modal Header -->
-                <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-                    <h3 id="task-modal-title" class="text-lg font-bold text-gray-900">Assign New Task</h3>
-                    <button class="close-modal p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
+                <!-- Employee Select -->
+                <div>
+                    <label for="taskEmployeeSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                        Assign To <span class="text-red-500">*</span>
+                    </label>
+                    <select id="taskEmployeeSelect" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                            required>
+                        <option value="">Select Employee</option>
+                    </select>
                 </div>
                 
-                <!-- Modal Body -->
-                <form id="task-form" class="p-6 space-y-4">
-                    <input type="hidden" id="task-id">
-                    
-                    <!-- Employee Select (Admin Only - for new tasks) -->
-                    <div id="employee-select-container" class="admin-only">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Assign To *</label>
-                        <select id="task-employee" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                            <option value="">Select Employee</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Task Name -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
-                        <input type="text" id="task-name" required placeholder="Enter task name" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                    </div>
-                    
-                    <!-- Description -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea id="task-description" rows="3" placeholder="Task description and details..." class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"></textarea>
-                    </div>
-                    
-                    <!-- Due Date -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
-                        <input type="date" id="task-due-date" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                    </div>
-                    
-                    <!-- Priority (Optional) -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                        <select id="task-priority" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Notes -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                        <textarea id="task-notes" rows="2" placeholder="Additional notes..." class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"></textarea>
-                    </div>
-                    
-                    <!-- Submit Buttons -->
-                    <div class="flex justify-end gap-3 pt-4">
-                        <button type="button" class="close-modal px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" id="task-submit-btn" class="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
-                            <i class="fas fa-plus mr-2"></i>Assign Task
-                        </button>
-                    </div>
-                    
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Task Detail Modal -->
-    <div id="task-detail-modal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm modal-backdrop"></div>
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
-                
-                <!-- Modal Header -->
-                <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900">Task Details</h3>
-                    <button class="close-modal p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
+                <!-- Task Title -->
+                <div>
+                    <label for="taskTitleInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Task Title <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           id="taskTitleInput" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Enter task title..."
+                           required>
                 </div>
                 
-                <!-- Modal Body -->
-                <div id="task-detail-content" class="p-6">
-                    <!-- Content will be dynamically inserted -->
+                <!-- Task Description -->
+                <div>
+                    <label for="taskDescriptionInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description <span class="text-gray-400">(optional)</span>
+                    </label>
+                    <textarea id="taskDescriptionInput" 
+                              rows="3" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                              placeholder="Describe the task..."></textarea>
                 </div>
                 
-                <!-- Modal Footer -->
-                <div id="task-detail-actions" class="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
-                    <button class="close-modal px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                        Close
-                    </button>
-                </div>
-                
-            </div>
-        </div>
-    </div>
-    
-    <!-- Complete Task Modal -->
-    <div id="complete-task-modal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm modal-backdrop"></div>
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
-                
-                <!-- Modal Header -->
-                <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900">Complete Task</h3>
-                    <button class="close-modal p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <!-- Modal Body -->
-                <form id="complete-task-form" class="p-6 space-y-4">
-                    <input type="hidden" id="complete-task-id">
-                    
-                    <div class="text-center mb-4">
-                        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-check text-2xl text-green-600"></i>
-                        </div>
-                        <p id="complete-task-name" class="font-semibold text-gray-900">Task Name</p>
-                    </div>
-                    
-                    <!-- Completion Notes -->
+                <!-- Deadline & Status Row -->
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Deadline -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Completion Notes (Optional)</label>
-                        <textarea id="complete-task-notes" rows="3" placeholder="Add any notes about the completed task..." class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"></textarea>
-                    </div>
-                    
-                    <!-- Submit -->
-                    <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" class="close-modal px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
-                            <i class="fas fa-check mr-2"></i>Mark Complete
-                        </button>
-                    </div>
-                    
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Update Score Modal (Admin Only) -->
-    <div id="score-modal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm modal-backdrop"></div>
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
-                
-                <!-- Modal Header -->
-                <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900">Update Score</h3>
-                    <button class="close-modal p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <!-- Modal Body -->
-                <form id="score-form" class="p-6 space-y-4">
-                    <input type="hidden" id="score-task-id">
-                    
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-500">Task:</p>
-                        <p id="score-task-name" class="font-semibold text-gray-900">Task Name</p>
-                    </div>
-                    
-                    <!-- Score Input -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Score (1-10) *</label>
-                        <input type="number" id="score-value" required min="1" max="10" step="0.5" placeholder="Enter score" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                        <p class="text-xs text-gray-500 mt-1">Rate the quality of work from 1 (poor) to 10 (excellent)</p>
-                    </div>
-                    
-                    <!-- Score Slider Visual -->
-                    <div class="pt-2">
-                        <input type="range" id="score-slider" min="1" max="10" step="0.5" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                        <div class="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>Poor</span>
-                            <span>Average</span>
-                            <span>Excellent</span>
+                        <label for="taskDeadlineInput" class="block text-sm font-medium text-gray-700 mb-2">
+                            Deadline
+                        </label>
+                        <div class="relative">
+                            <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <input type="date" 
+                                   id="taskDeadlineInput" 
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         </div>
                     </div>
                     
-                    <!-- Notes -->
+                    <!-- Status -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Feedback (Optional)</label>
-                        <textarea id="score-notes" rows="3" placeholder="Add feedback for the employee..." class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"></textarea>
+                        <label for="taskStatusSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                            Status
+                        </label>
+                        <select id="taskStatusSelect" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
                     </div>
-                    
-                    <!-- Submit -->
-                    <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" class="close-modal px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" class="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
-                            <i class="fas fa-save mr-2"></i>Save Score
-                        </button>
+                </div>
+                
+                <!-- Quality Score -->
+                <div>
+                    <label for="taskQualityInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Quality Score <span class="text-gray-400">(0-100)</span>
+                    </label>
+                    <div class="relative">
+                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <input type="number" 
+                               id="taskQualityInput" 
+                               min="0" 
+                               max="100"
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Enter score (optional)">
                     </div>
-                    
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-task-modal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm modal-backdrop"></div>
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full animate-scale-in">
-                <div class="p-6 text-center">
-                    <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-trash text-2xl text-red-600"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 mb-2">Delete Task</h3>
-                    <p class="text-gray-500 mb-2">Are you sure you want to delete this task?</p>
-                    <p id="delete-task-name" class="font-semibold text-gray-900 mb-4">Task Name</p>
-                    <p class="text-sm text-red-500 mb-6">
-                        <i class="fas fa-exclamation-circle mr-1"></i>
-                        This action cannot be undone.
-                    </p>
-                    <input type="hidden" id="delete-task-id">
-                    <div class="flex justify-center gap-3">
-                        <button id="cancel-delete-task" class="px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button id="confirm-delete-task" class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
-                            <i class="fas fa-trash mr-2"></i>Delete
-                        </button>
-                    </div>
+                </div>
+                
+                <!-- Hidden notes field for API compatibility -->
+                <input type="hidden" id="taskNotesInput">
+            </form>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-between p-5 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+                <button id="btnDeleteTask" class="hidden px-4 py-2.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete
+                </button>
+                <div class="flex items-center gap-3 ml-auto">
+                    <button type="button" id="btnCancelTask" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" id="btnSaveTask" class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Add Task
+                    </button>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Generic Confirm Modal -->
-    <div id="confirm-modal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm modal-backdrop"></div>
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full animate-scale-in">
-                <div class="p-6 text-center">
-                    <div id="confirm-icon" class="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-exclamation-triangle text-2xl text-yellow-600"></i>
-                    </div>
-                    <h3 id="confirm-title" class="text-lg font-bold text-gray-900 mb-2">Confirm Action</h3>
-                    <p id="confirm-message" class="text-gray-500 mb-6">Are you sure you want to proceed?</p>
-                    <div class="flex justify-center gap-3">
-                        <button id="confirm-cancel" class="px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button id="confirm-ok" class="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
-                            Confirm
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- ============================================ -->
+    <!-- TOAST CONTAINER -->
+    <!-- ============================================ -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[9999] space-y-2">
+        <!-- Toast notifications will be injected here by JS -->
     </div>
     
-    <!-- Scripts -->
+    <!-- ============================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================ -->
+    
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Configuration -->
+    <script src="config/sheet-config.js"></script>
+    
+    <!-- API Module -->
+    <script src="assets/js/api.js"></script>
+    
+    <!-- Utilities -->
+    <script src="assets/js/utils.js"></script>
+    
+    <!-- Page Controller -->
+    <script src="assets/js/performance.js"></script>
+    
+    <!-- Sidebar Toggle Script -->
     <script>
-        const CONFIG = {
-            API_URL: 'https://script.google.com/macros/s/AKfycbwiC4a5_VjwnMrl3Il2dAXBrrwXqcBFL-YqmGnJZLcVNhLFYTY-0i05gbRSZyujhiMcRA/exec',
-            STORAGE_KEYS: {
-                SESSION: 'hr_session',
-                USER: 'hr_user',
-                REMEMBER: 'hr_remember'
-            },
-            UI: {
-                TOAST_DURATION: 4000,
-                REDIRECT_DELAY: 1500,
-                DEBOUNCE_DELAY: 300
-            },
-            ROUTES: {
-                ADMIN_DASHBOARD: 'admin-dashboard.html',
-                EMPLOYEE_DASHBOARD: 'employee-dashboard.html',
-                LOGIN: 'login.html',
-                UNAUTHORIZED: 'unauthorized.html'
-            }
-        };
-    </script>
-    
-    <!-- Core Modules -->
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/utils.js"></script>
-    
-    <!-- Page Logic -->
-    <script src="js/performance.js"></script>
-    
-    <!-- Score Slider Sync -->
-    <script>
-        $(document).ready(function() {
-            // Sync score slider with input
-            $('#score-slider').on('input', function() {
-                $('#score-value').val($(this).val());
-            });
-            
-            $('#score-value').on('input', function() {
-                const val = parseFloat($(this).val()) || 5;
-                $('#score-slider').val(Math.min(10, Math.max(1, val)));
-            });
+        // Sidebar toggle for mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        });
+        
+        document.getElementById('sidebarOverlay')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            this.classList.add('hidden');
+            sidebar.classList.add('-translate-x-full');
+        });
+        
+        // Set current date in navbar
+        document.getElementById('navCurrentDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
         });
     </script>
     

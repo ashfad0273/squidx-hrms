@@ -1,42 +1,618 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HR Management System</title>
-
-    <!-- TailwindCSS -->
-    <link rel="stylesheet" href="css/tailwind.output.css" />
-    <link rel="stylesheet" href="css/custom.css" />
-
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-
-    <script src="js/auth.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SquidX HRM - Dashboard Overview">
+    <title>Dashboard | SquidX HRM</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            200: '#C7D2FE',
+                            300: '#A5B4FC',
+                            400: '#818CF8',
+                            500: '#6366F1',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        .spinner-sm {
+            width: 20px;
+            height: 20px;
+            border-width: 2px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+        
+        /* Card hover effect */
+        .summary-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Progress bar animation */
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+    </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen bg-gray-50">
-
-    <div class="text-center space-y-4">
-        <h1 class="text-3xl font-bold text-gray-800">HR Management System</h1>
-        <p class="text-gray-600">Checking login status...</p>
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- ============================================ -->
+    <!-- LOADING OVERLAY -->
+    <!-- ============================================ -->
+    <div id="dashboardLoadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-40 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+            <div class="spinner mb-4"></div>
+            <p class="text-gray-600 font-medium">Loading dashboard...</p>
+        </div>
     </div>
-
+    
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="bg-white border-b border-gray-200 fixed w-full top-0 z-30">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center">
+                    <button id="sidebarToggle" class="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 lg:hidden">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <a href="index.html" class="flex items-center ml-2 lg:ml-0">
+                        <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">S</span>
+                        </div>
+                        <span class="ml-2 text-xl font-semibold text-gray-900">SquidX <span class="text-primary-600">HRM</span></span>
+                    </a>
+                </div>
+                
+                <!-- Right Side -->
+                <div class="flex items-center gap-4">
+                    <!-- Refresh Button -->
+                    <button id="btnRefreshDashboard" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Refresh Dashboard">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Current Date -->
+                    <div class="hidden sm:flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="navCurrentDate"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside id="sidebar" class="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+        <nav class="p-4 space-y-1">
+            <!-- Dashboard (Active) -->
+            <a href="index.html" class="flex items-center px-4 py-3 bg-primary-50 text-primary-700 rounded-lg font-medium">
+                <svg class="w-5 h-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            
+            <!-- Members -->
+            <a href="members.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>Members</span>
+            </a>
+            
+            <!-- Attendance -->
+            <a href="attendance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span>Attendance</span>
+            </a>
+            
+            <!-- Performance -->
+            <a href="performance.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>Performance</span>
+            </a>
+            
+            <!-- Ratings -->
+            <a href="ratings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                </svg>
+                <span>Ratings</span>
+            </a>
+            
+            <!-- Divider -->
+            <div class="border-t border-gray-200 my-4"></div>
+            
+            <!-- Settings -->
+            <a href="settings.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors group">
+                <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </aside>
+    
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-10 hidden lg:hidden"></div>
+    
+    <!-- ============================================ -->
+    <!-- MAIN CONTENT -->
+    <!-- ============================================ -->
+    <main class="lg:ml-64 pt-16 min-h-screen">
+        <div id="dashboardContainer" class="p-4 sm:p-6 lg:p-8">
+            
+            <!-- ============================================ -->
+            <!-- PAGE HEADER -->
+            <!-- ============================================ -->
+            <div class="mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+                        <p class="mt-1 text-gray-500 text-sm">HR metrics, employee overview, and attendance insights</p>
+                    </div>
+                    
+                    <!-- Today's Date Display -->
+                    <div class="flex items-center bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
+                        <svg class="w-5 h-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="todayDateDisplay" class="text-gray-700 font-medium text-sm">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- SUMMARY CARDS -->
+            <!-- ============================================ -->
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+                <!-- Total Employees -->
+                <div class="summary-card bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Employees</p>
+                            <p id="cardTotalEmployees" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Present Today -->
+                <div class="summary-card bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Present Today</p>
+                            <p id="cardPresentToday" class="text-2xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="mt-3">
+                        <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="presentProgress" class="progress-bar h-full bg-green-500 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Late Today -->
+                <div class="summary-card bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Late Today</p>
+                            <p id="cardLateToday" class="text-2xl font-bold text-amber-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="mt-3">
+                        <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="lateProgress" class="progress-bar h-full bg-amber-500 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Absent Today -->
+                <div class="summary-card bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Absent Today</p>
+                            <p id="cardAbsentToday" class="text-2xl font-bold text-red-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="mt-3">
+                        <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="absentProgress" class="progress-bar h-full bg-red-500 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Average Rating -->
+                <div class="summary-card bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Avg Rating</p>
+                            <div class="flex items-baseline">
+                                <p id="cardAvgRating" class="text-2xl font-bold text-primary-600">0.0</p>
+                                <span class="text-sm text-gray-400 ml-1">/5</span>
+                            </div>
+                        </div>
+                        <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tasks Due Today -->
+                <div class="summary-card bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Tasks Due</p>
+                            <p id="cardTasksDueToday" class="text-2xl font-bold text-purple-600">0</p>
+                        </div>
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- ATTENDANCE SNAPSHOT + DEPARTMENT DISTRIBUTION -->
+            <!-- ============================================ -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+                <!-- Today's Check-ins -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Today's Check-ins</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Latest attendance records</p>
+                        </div>
+                        <a href="attendance.html" class="text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center">
+                            View All
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+                    
+                    <!-- List -->
+                    <div id="latestCheckinsList" class="px-6 py-4 max-h-80 overflow-y-auto">
+                        <!-- Check-ins will be injected by JS -->
+                        <div class="flex items-center justify-center py-8">
+                            <div class="spinner-sm spinner"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Department Distribution -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Department Overview</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Employee distribution by department</p>
+                        </div>
+                        <a href="members.html" class="text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center">
+                            View All
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+                    
+                    <!-- List -->
+                    <div id="departmentDistributionList" class="px-6 py-4 max-h-80 overflow-y-auto">
+                        <!-- Department list will be injected by JS -->
+                        <div class="flex items-center justify-center py-8">
+                            <div class="spinner-sm spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- CHARTS SECTION -->
+            <!-- ============================================ -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+                <!-- Monthly Attendance Trend -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Attendance Trend</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Last 14 days overview</p>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                                Present
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                Late
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                Absent
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Department Distribution Chart -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Department Distribution</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Employees by department</p>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="departmentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ============================================ -->
+            <!-- UPCOMING TASKS + QUICK ACTIONS -->
+            <!-- ============================================ -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <!-- Upcoming Tasks -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Upcoming Tasks</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Tasks due soon</p>
+                        </div>
+                        <a href="performance.html" class="text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center">
+                            View All
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+                    
+                    <!-- List -->
+                    <div id="upcomingTasksList" class="px-6 py-4 max-h-64 overflow-y-auto">
+                        <!-- Tasks will be injected by JS -->
+                        <div class="flex items-center justify-center py-8">
+                            <div class="spinner-sm spinner"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="xl:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div class="mb-4">
+                        <h3 class="text-base font-semibold text-gray-900">Quick Actions</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Frequently used actions</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <!-- Add Attendance -->
+                        <a href="attendance.html" class="flex flex-col items-center gap-3 px-4 py-5 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-200 rounded-xl transition-all group">
+                            <div class="w-12 h-12 bg-green-100 group-hover:bg-green-200 rounded-xl flex items-center justify-center transition-colors">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 group-hover:text-primary-700 text-center">Add Attendance</span>
+                        </a>
+                        
+                        <!-- Add Member -->
+                        <a href="members.html" class="flex flex-col items-center gap-3 px-4 py-5 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-200 rounded-xl transition-all group">
+                            <div class="w-12 h-12 bg-blue-100 group-hover:bg-blue-200 rounded-xl flex items-center justify-center transition-colors">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 group-hover:text-primary-700 text-center">Add Member</span>
+                        </a>
+                        
+                        <!-- View Performance -->
+                        <a href="performance.html" class="flex flex-col items-center gap-3 px-4 py-5 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-200 rounded-xl transition-all group">
+                            <div class="w-12 h-12 bg-purple-100 group-hover:bg-purple-200 rounded-xl flex items-center justify-center transition-colors">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 group-hover:text-primary-700 text-center">Performance</span>
+                        </a>
+                        
+                        <!-- View Ratings -->
+                        <a href="ratings.html" class="flex flex-col items-center gap-3 px-4 py-5 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-200 rounded-xl transition-all group">
+                            <div class="w-12 h-12 bg-amber-100 group-hover:bg-amber-200 rounded-xl flex items-center justify-center transition-colors">
+                                <svg class="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 group-hover:text-primary-700 text-center">Ratings</span>
+                        </a>
+                        
+                        <!-- Settings -->
+                        <a href="settings.html" class="flex flex-col items-center gap-3 px-4 py-5 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-200 rounded-xl transition-all group">
+                            <div class="w-12 h-12 bg-gray-200 group-hover:bg-gray-300 rounded-xl flex items-center justify-center transition-colors">
+                                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 group-hover:text-primary-700 text-center">Settings</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+    
+    <!-- ============================================ -->
+    <!-- TOAST CONTAINER -->
+    <!-- ============================================ -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[9999] space-y-2">
+        <!-- Toast notifications will be injected here by JS -->
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================ -->
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Configuration -->
+    <script src="config/sheet-config.js"></script>
+    
+    <!-- API Module -->
+    <script src="assets/js/api.js"></script>
+    
+    <!-- Utilities -->
+    <script src="assets/js/utils.js"></script>
+    
+    <!-- Page Controller -->
+    <script src="assets/js/index.js"></script>
+    
+    <!-- Sidebar Toggle Script -->
     <script>
-        $(document).ready(function() {
-            // Redirect logic
-            if (Auth.isAuthenticated()) {
-                const user = Auth.getCurrentUser();
-                if (user.role?.toLowerCase() === "admin") {
-                    window.location.href = "admin-dashboard.html";
-                } else {
-                    window.location.href = "employee-dashboard.html";
-                }
-            } else {
-                window.location.href = "login.html";
-            }
+        // Sidebar toggle for mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        });
+        
+        document.getElementById('sidebarOverlay')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            this.classList.add('hidden');
+            sidebar.classList.add('-translate-x-full');
+        });
+        
+        // Set current date in navbar
+        document.getElementById('navCurrentDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
         });
     </script>
-
+    
 </body>
 </html>
